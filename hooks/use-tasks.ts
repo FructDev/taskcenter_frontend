@@ -1,35 +1,39 @@
 // src/hooks/use-tasks.ts
 "use client";
 import useSWR from "swr";
-import { TaskType } from "@/types";
+import { TaskType, TaskStatus } from "@/types";
 import { fetcher } from "@/lib/fetcher";
 
 interface TaskFilters {
   search?: string;
-  status?: string;
+  status?: TaskStatus | TaskStatus[]; // Puede ser un solo estado o un array de estados
+  refreshInterval?: number;
 }
 
 export function useTasks(filters?: TaskFilters) {
-  let query = "";
+  // URLSearchParams nos ayuda a construir la URL de forma segura
+  const queryParams = new URLSearchParams();
 
-  if (filters) {
-    // Creamos un objeto solo con los filtros que tienen un valor real
-    const activeFilters = Object.entries(filters).reduce(
-      (acc, [key, value]) => {
-        if (value) {
-          acc[key] = value;
-        }
-        return acc;
-      },
-      {} as Record<string, string>
-    );
-
-    query = new URLSearchParams(activeFilters).toString();
+  if (filters?.search) {
+    queryParams.append("search", filters.search);
   }
 
-  const url = query ? `/tasks?${query}` : "/tasks";
+  // --- LÓGICA CORREGIDA Y PROFESIONAL ---
+  if (filters?.status) {
+    if (Array.isArray(filters.status)) {
+      // Si es un array, añadimos un parámetro 'status' por cada elemento
+      filters.status.forEach((s) => queryParams.append("status", s));
+    } else {
+      // Si es un solo string, lo añadimos como antes
+      queryParams.append("status", filters.status);
+    }
+  }
 
-  const { data, error, isLoading, mutate } = useSWR<TaskType[]>(url, fetcher);
+  const url = `/tasks?${queryParams.toString()}`;
+
+  const { data, error, isLoading, mutate } = useSWR<TaskType[]>(url, fetcher, {
+    refreshInterval: filters?.refreshInterval || 0,
+  });
 
   return {
     tasks: data,

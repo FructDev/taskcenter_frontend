@@ -95,6 +95,7 @@ export interface TaskType {
     user: UserType;
     createdAt: string;
   }[];
+  dailyLogs: DailyLogType[];
 }
 
 export enum TaskStatus {
@@ -197,4 +198,12 @@ export interface ScheduledTaskType {
   targetEquipmentType: string;
   isEnabled: boolean;
   lastRunAt?: string;
+}
+
+export interface DailyLogType {
+  _id: string;
+  confirmedBy: UserType;
+  notes: string;
+  location: LocationType;
+  createdAt: string;
 }

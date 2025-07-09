@@ -10,10 +10,11 @@ interface TaskSummary {
   overdue: number;
 }
 
-export function useTaskSummary() {
+export function useTaskSummary(refreshInterval = 0) {
   const { data, error, isLoading } = useSWR<TaskSummary>(
     "/tasks/summary",
-    fetcher
+    fetcher,
+    { refreshInterval }
   );
   return {
     summary: data,

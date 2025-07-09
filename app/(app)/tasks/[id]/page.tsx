@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/dialog";
 import { TaskForm } from "@/components/tasks/TaskForm";
 import { StatusChangeDialog } from "@/components/tasks/StatusChangeDialog";
+import { DailyLogSection } from "@/components/tasks/DailyLogSection";
 
 export default function TaskDetailPage() {
   const params = useParams();
@@ -117,7 +118,7 @@ export default function TaskDetailPage() {
             ID de Tarea: T-{task._id.slice(-6).toUpperCase()}
           </p>
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 shrink-0">
           {task.status === "pendiente" && (
             <Button onClick={() => handleAction("start")}>
               <PlayCircle className="mr-2 h-4 w-4" /> Iniciar
@@ -181,9 +182,9 @@ export default function TaskDetailPage() {
       </header>
 
       {/* CONTENIDO PRINCIPAL EN REJILLA */}
-      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* COLUMNA DE CONTENIDO PRINCIPAL - Le decimos que ocupe 2 de 3 columnas en pantallas grandes */}
-        <div className="space-y-6">
+        <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Descripción Detallada</CardTitle>
@@ -202,6 +203,7 @@ export default function TaskDetailPage() {
               <TaskAttachments task={task} />
             </CardContent>
           </Card>
+          <DailyLogSection task={task} />
           <Card>
             <CardHeader>
               <CardTitle>Bitácora y Comentarios</CardTitle>
@@ -312,64 +314,55 @@ function InfoRow({
 // Esqueleto de carga (ya lo tenías, se puede mover a su propio archivo si quieres)
 function TaskDetailSkeleton() {
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 lg:p-8 max-w-6xl mx-auto">
-      {/* Skeleton para la Cabecera */}
+    <div className="flex flex-col gap-6 p-4 sm:p-6 md:p-8">
+      {/* --- Cabecera Responsiva --- */}
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <Skeleton className="h-5 w-24 mb-2 rounded-md" />
-          <Skeleton className="h-9 w-72 md:w-96 rounded-lg" />
+        <div className="flex-1 min-w-0">
+          <Skeleton className="h-8 w-3/4 md:w-1/2 rounded-lg" />
           <Skeleton className="h-4 w-48 mt-2 rounded-md" />
         </div>
-        <div className="flex gap-2 shrink-0">
-          <Skeleton className="h-10 w-32 rounded-md" />
+        {/* Este div ahora usa flex-wrap, igual que el real */}
+        <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 shrink-0">
+          <Skeleton className="h-10 w-28 rounded-md" />
           <Skeleton className="h-10 w-24 rounded-md" />
         </div>
       </header>
-
       <Separator />
 
-      {/* Skeleton para la Rejilla Principal */}
-      <div className="grid gap-6 lg:grid-cols-5">
-        {/* Skeleton para la Columna Izquierda */}
-        <div className="lg:col-span-3 space-y-6">
+      {/* --- Rejilla de Contenido Responsiva (idéntica en estructura a la página real) --- */}
+      <div className="flex flex-col lg:flex-row lg:gap-8 gap-6">
+        {/* Columna Lateral (de metadatos) */}
+        <div className="lg:col-start-3 lg:row-start-1 space-y-6">
           <Card>
             <CardHeader>
-              <Skeleton className="h-6 w-1/2 rounded-md" />
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-5/6" />
+              <Skeleton className="h-5 w-full" />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Contenido Principal */}
+        <div className="lg:col-span-2 lg:row-start-1 space-y-6">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48" />
             </CardHeader>
             <CardContent className="space-y-2">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-5/6" />
+              <Skeleton className="h-4 w-4/5" />
             </CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <Skeleton className="h-6 w-1/3 rounded-md" />
+              <Skeleton className="h-6 w-40" />
             </CardHeader>
             <CardContent>
-              <Skeleton className="h-32 w-full" />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Skeleton para la Columna Derecha */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-1/3 rounded-md" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Skeleton className="h-5 w-full" />
-              <Skeleton className="h-5 w-full" />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-1/2 rounded-md" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Skeleton className="h-5 w-full" />
-              <Skeleton className="h-8 w-1/2 ml-auto" />
+              <Skeleton className="h-24 w-full" />
             </CardContent>
           </Card>
         </div>
