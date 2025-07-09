@@ -28,7 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 interface KanbanBoardProps {
   filters: {
     search?: string;
-    status?: string;
+    status?: TaskStatus | TaskStatus[];
   };
 }
 
