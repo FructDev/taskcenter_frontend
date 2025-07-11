@@ -2,7 +2,7 @@
 "use client";
 import { ActivityLogType } from "@/types";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import Link from "next/link";
 // import { cn } from "@/lib/utils";
@@ -34,8 +34,7 @@ export function ActivityLogItem({ log }: { log: ActivityLogType }) {
           )}
         </p>
         <p className="text-xs text-muted-foreground">
-          {formatDistanceToNow(new Date(log.createdAt), {
-            addSuffix: true,
+          {format(new Date(log.createdAt), "dd 'de' MMMM, yyyy 'a las' HH:mm", {
             locale: es,
           })}
         </p>

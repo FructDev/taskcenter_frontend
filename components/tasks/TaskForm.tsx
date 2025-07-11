@@ -40,12 +40,21 @@ import api from "@/lib/api";
 import { getErrorMessage } from "@/lib/handle-error";
 import { FormError } from "../ui/form-error";
 import { useState } from "react";
-import { UserType, ContractorType, LocationType, TaskType } from "@/types";
+import {
+  UserType,
+  ContractorType,
+  LocationType,
+  TaskType,
+  TaskTypeEnum,
+  CriticalityLevel,
+} from "@/types";
 import { useTasks } from "@/hooks/use-tasks";
 import { toast } from "sonner";
 import { useTask } from "@/hooks/use-task";
 import { useTaskTemplates } from "@/hooks/use-task-templates";
 import { useEquipment } from "@/hooks/use-equipment";
+import { usePpeItems } from "@/hooks/use-ppe-items";
+import { Checkbox } from "../ui/checkbox";
 
 const formSchema = z.object({
   title: z.string().min(5, { message: "El título es muy corto." }),
@@ -67,6 +76,7 @@ const formSchema = z.object({
   contractorAssociated: z.string().optional(),
   contractorContactName: z.string().optional(),
   contractorContactPhone: z.string().optional(),
+  requiredPpe: z.array(z.string()).optional(),
 });
 
 interface TaskFormProps {
@@ -86,6 +96,7 @@ export function TaskForm({ taskToEdit, onSuccess }: TaskFormProps) {
   const { users } = useUsers();
   const { contractors } = useContractors();
   const { locations } = useLocations();
+  const { ppeItems } = usePpeItems();
 
   const isEditMode = !!taskToEdit;
 
@@ -104,6 +115,7 @@ export function TaskForm({ taskToEdit, onSuccess }: TaskFormProps) {
           assignedTo: taskToEdit.assignedTo?._id,
           contractorAssociated: taskToEdit.contractorAssociated?._id,
           contractorContactName: taskToEdit.contractorContactName,
+          requiredPpe: taskToEdit.requiredPpe?.map((item) => item._id) || [],
         }
       : {
           title: "",
@@ -115,15 +127,29 @@ export function TaskForm({ taskToEdit, onSuccess }: TaskFormProps) {
   const handleTemplateChange = (templateId: string) => {
     const template = templates?.find((t) => t._id === templateId);
     if (template) {
-      // Usamos form.reset para rellenar varios campos a la vez
-      form.reset({
-        ...form.getValues(), // Mantenemos los valores que ya estaban
-        title: template.title,
-        description: template.description,
-        taskType: template.taskType,
-        criticality: template.criticality,
-        location: template.location?._id,
+      // Usamos form.setValue para cada campo para ser explícitos
+      form.setValue("title", template.title, { shouldValidate: true });
+      form.setValue("description", template.description || "", {
+        shouldValidate: true,
       });
+      form.setValue("taskType", template.taskType as TaskTypeEnum);
+      form.setValue("criticality", template.criticality as CriticalityLevel);
+
+      if (template.location) {
+        form.setValue("location", template.location._id, {
+          shouldValidate: true,
+        });
+      } else {
+        form.setValue("location", "");
+      }
+
+      if (template.requiredPpe && template.requiredPpe.length > 0) {
+        const ppeIds = template.requiredPpe.map((item) => item._id);
+        form.setValue("requiredPpe", ppeIds, { shouldValidate: true });
+      } else {
+        form.setValue("requiredPpe", []);
+      }
+
       toast.success(`Plantilla "${template.name}" cargada.`);
     }
   };
@@ -440,6 +466,60 @@ export function TaskForm({ taskToEdit, onSuccess }: TaskFormProps) {
               <FormDescription>
                 Opcional: si la tarea es para un contratista.
               </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="requiredPpe"
+          render={() => (
+            <FormItem>
+              <div className="mb-4">
+                <FormLabel className="text-base">
+                  EPP Requerido (Opcional)
+                </FormLabel>
+                <FormDescription>
+                  Selecciona el equipo de protección personal necesario para
+                  esta tarea.
+                </FormDescription>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {ppeItems?.map((item) => (
+                  <FormField
+                    key={item._id}
+                    control={form.control}
+                    name="requiredPpe"
+                    render={({ field }) => {
+                      return (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value?.includes(item._id)}
+                              onCheckedChange={(checked) => {
+                                return checked
+                                  ? field.onChange([
+                                      ...(field.value || []),
+                                      item._id,
+                                    ])
+                                  : field.onChange(
+                                      field.value?.filter(
+                                        (value) => value !== item._id
+                                      )
+                                    );
+                              }}
+                            />
+                          </FormControl>
+                          <FormLabel className="font-normal">
+                            {item.name}
+                          </FormLabel>
+                        </FormItem>
+                      );
+                    }}
+                  />
+                ))}
+              </div>
               <FormMessage />
             </FormItem>
           )}

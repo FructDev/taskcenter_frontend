@@ -11,6 +11,7 @@ import api from "@/lib/api";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -28,6 +29,8 @@ import {
 } from "../ui/select";
 import { Textarea } from "../ui/textarea";
 import { useLocations } from "@/hooks/use-locations";
+import { usePpeItems } from "@/hooks/use-ppe-items";
+import { Checkbox } from "../ui/checkbox";
 
 // Usamos los enums que ya tenemos en los tipos de Tarea
 const TaskTypeEnum = z.enum([
@@ -45,6 +48,7 @@ const formSchema = z.object({
   taskType: TaskTypeEnum,
   criticality: CriticalityLevelEnum,
   location: z.string().optional().nullable(),
+  requiredPpe: z.array(z.string()).optional(),
 });
 
 interface TemplateFormProps {
@@ -57,6 +61,7 @@ export function TemplateForm({ templateToEdit, onSuccess }: TemplateFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const isEditMode = !!templateToEdit;
   const { locations } = useLocations();
+  const { ppeItems } = usePpeItems();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -67,6 +72,7 @@ export function TemplateForm({ templateToEdit, onSuccess }: TemplateFormProps) {
       taskType: templateToEdit?.taskType,
       criticality: templateToEdit?.criticality || "baja",
       location: templateToEdit?.location?._id || undefined,
+      requiredPpe: templateToEdit?.requiredPpe?.map((item) => item._id) || [],
     },
   });
 
@@ -133,6 +139,57 @@ export function TemplateForm({ templateToEdit, onSuccess }: TemplateFormProps) {
               <FormControl>
                 <Textarea placeholder="Procedimiento estándar..." {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="requiredPpe"
+          render={({}) => (
+            <FormItem>
+              <div className="mb-4">
+                <FormLabel className="text-base">EPP Requerido</FormLabel>
+                <FormDescription>
+                  Selecciona el equipo de protección personal necesario para
+                  esta tarea.
+                </FormDescription>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {ppeItems?.map((item) => (
+                  <FormField
+                    key={item._id}
+                    control={form.control}
+                    name="requiredPpe"
+                    render={({ field }) => {
+                      return (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value?.includes(item._id)}
+                              onCheckedChange={(checked) => {
+                                return checked
+                                  ? field.onChange([
+                                      ...(field.value || []),
+                                      item._id,
+                                    ])
+                                  : field.onChange(
+                                      field.value?.filter(
+                                        (value) => value !== item._id
+                                      )
+                                    );
+                              }}
+                            />
+                          </FormControl>
+                          <FormLabel className="font-normal">
+                            {item.name}
+                          </FormLabel>
+                        </FormItem>
+                      );
+                    }}
+                  />
+                ))}
+              </div>
               <FormMessage />
             </FormItem>
           )}

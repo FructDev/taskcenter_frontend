@@ -1,16 +1,13 @@
-// app/(app)/admin/templates/page.tsx
+// app/(app)/admin/ppe-items/page.tsx
 "use client";
-
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { ColumnDef } from "@tanstack/react-table";
 import { PlusCircle } from "lucide-react";
-
-import { TaskTemplateType } from "@/types";
+import { PpeItemType } from "@/types";
 import api from "@/lib/api";
 import { getErrorMessage } from "@/lib/handle-error";
-import { useTaskTemplates } from "@/hooks/use-task-templates";
-
+import { usePpeItems } from "@/hooks/use-ppe-items";
 import { PageHeader } from "@/components/common/page-header";
 import { GenericDataTable } from "@/components/common/GenericDataTable";
 import { ActionsMenu } from "@/components/common/ActionsMenu";
@@ -20,7 +17,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  //   DialogDescription,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -32,29 +28,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { TemplateForm } from "@/components/task-templates/TemplateForm";
-import { Badge } from "@/components/ui/badge";
+import { PpeItemForm } from "@/components/ppe-items/PpeItemForm";
 
-export default function ManageTemplatesPage() {
-  const { templates, isLoading, mutate } = useTaskTemplates();
-
+export default function ManagePpeItemsPage() {
+  const { ppeItems, isLoading, mutate } = usePpeItems();
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<
-    TaskTemplateType | undefined
-  >(undefined);
+  const [selectedItem, setSelectedItem] = useState<PpeItemType | undefined>(
+    undefined
+  );
 
   const handleAddNew = () => {
     setSelectedItem(undefined);
     setIsFormModalOpen(true);
   };
-
-  const handleEdit = (item: TaskTemplateType) => {
+  const handleEdit = (item: PpeItemType) => {
     setSelectedItem(item);
     setIsFormModalOpen(true);
   };
-
-  const handleDeleteAttempt = (item: TaskTemplateType) => {
+  const handleDeleteAttempt = (item: PpeItemType) => {
     setSelectedItem(item);
     setIsDeleteAlertOpen(true);
   };
@@ -62,36 +54,18 @@ export default function ManageTemplatesPage() {
   const handleDeleteConfirm = async () => {
     if (!selectedItem) return;
     try {
-      await api.delete(`/task-templates/${selectedItem._id}`);
-      toast.success("Plantilla eliminada.");
-      mutate(); // Refresca la lista de plantillas
+      await api.delete(`/ppe-items/${selectedItem._id}`);
+      toast.success("EPP eliminado.");
+      mutate();
     } catch (error) {
       toast.error("Error al eliminar", { description: getErrorMessage(error) });
     }
   };
 
-  const columns = useMemo<ColumnDef<TaskTemplateType>[]>(
+  const columns = useMemo<ColumnDef<PpeItemType>[]>(
     () => [
-      { accessorKey: "name", header: "Nombre de Plantilla" },
-      { accessorKey: "title", header: "Título de Tarea" },
-      {
-        accessorKey: "taskType",
-        header: "Tipo",
-        cell: ({ row }) => (
-          <Badge variant="outline" className="capitalize">
-            {row.original.taskType.replace(/_/g, " ")}
-          </Badge>
-        ),
-      },
-      {
-        accessorKey: "criticality",
-        header: "Criticidad",
-        cell: ({ row }) => (
-          <Badge variant="outline" className="capitalize">
-            {row.original.criticality}
-          </Badge>
-        ),
-      },
+      { accessorKey: "name", header: "Nombre del EPP" },
+      { accessorKey: "description", header: "Descripción" },
       {
         id: "actions",
         cell: ({ row }) => (
@@ -105,68 +79,66 @@ export default function ManageTemplatesPage() {
     []
   );
 
-  const modalTitle = selectedItem
-    ? "Editar Plantilla"
-    : "Crear Nueva Plantilla";
+  const modalTitle = selectedItem ? "Editar EPP" : "Crear Nuevo EPP";
 
   return (
     <>
       <div className="flex flex-col gap-8">
         <PageHeader
-          title="Gestión de Plantillas de Tareas"
-          description="Crea y edita plantillas para agilizar la creación de tareas recurrentes."
+          title="Gestión de EPP"
+          description="Crea y gestiona el catálogo de Equipos de Protección Personal."
           actionButton={
             <Button onClick={handleAddNew}>
               <PlusCircle className="mr-2 h-4 w-4" />
-              Crear Plantilla
+              Crear EPP
             </Button>
           }
         />
         <GenericDataTable
           columns={columns}
-          data={templates || []}
+          data={ppeItems || []}
           isLoading={isLoading}
+          onEdit={handleEdit}
+          onDelete={handleDeleteAttempt}
         />
       </div>
-
       <Dialog open={isFormModalOpen} onOpenChange={setIsFormModalOpen}>
-        <DialogContent className="sm:max-w-[625px]">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>{modalTitle}</DialogTitle>
           </DialogHeader>
-
-          {/* Envolvemos el formulario en un div con scroll */}
-          <div className="max-h-[70vh] overflow-y-auto p-1 pr-6">
-            <TemplateForm
-              templateToEdit={selectedItem}
-              onSuccess={() => {
-                setIsFormModalOpen(false);
-                mutate();
-              }}
-            />
-          </div>
+          <PpeItemForm
+            ppeItemToEdit={selectedItem}
+            onSuccess={() => {
+              setIsFormModalOpen(false);
+              mutate();
+            }}
+          />
         </DialogContent>
       </Dialog>
-
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará permanentemente la plantilla{" "}
+              Esta acción no se puede deshacer. Eliminará permanentemente el EPP
               <span className="font-bold">
+                {" "}
                 &quot;{selectedItem?.name}&quot;
-              </span>
-              .
+              </span>{" "}
+              del catálogo.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteConfirm}
+              onClick={() => {
+                handleDeleteConfirm();
+                setIsDeleteAlertOpen(false); // Cierra el diálogo al confirmar
+              }}
               className="bg-destructive hover:bg-destructive/90"
             >
-              Eliminar
+              Sí, Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

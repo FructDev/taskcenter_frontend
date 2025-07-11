@@ -43,6 +43,10 @@ import {
 import { TaskForm } from "@/components/tasks/TaskForm";
 import { StatusChangeDialog } from "@/components/tasks/StatusChangeDialog";
 import { DailyLogSection } from "@/components/tasks/DailyLogSection";
+import { PpeChecklistDialog } from "@/components/tasks/PpeChecklistDialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TaskActivityHistory } from "@/components/tasks/TaskActivityHistory";
+import { TaskPpeRequirements } from "@/components/tasks/TaskPpeRequirements";
 
 export default function TaskDetailPage() {
   const params = useParams();
@@ -52,17 +56,37 @@ export default function TaskDetailPage() {
   const [dialogAction, setDialogAction] = useState<"pause" | "cancel" | null>(
     null
   );
+  const [isPpeCheckOpen, setIsPpeCheckOpen] = useState(false);
 
-  const handleAction = async (action: "start" | "complete") => {
+  const startTaskApiCall = async () => {
     try {
-      // La URL de la API se construye correctamente con el ID de la tarea
-      await api.post(`/tasks/${id}/${action}`);
-      toast.success(
-        `Tarea marcada como "${
-          action === "start" ? "en progreso" : "completada"
-        }"`
-      );
-      mutate(); // Refrescamos los datos de la tarea actual para ver el cambio
+      await api.post(`/tasks/${id}/start`);
+      toast.success("Tarea marcada como 'en progreso'");
+      mutate();
+    } catch (error) {
+      toast.error("Acción fallida", { description: getErrorMessage(error) });
+    }
+  };
+
+  // Este manejador ahora decide si abre el modal o inicia la tarea directamente
+  const handleStartAttempt = () => {
+    // Si por alguna razón la tarea aún no ha cargado, no hacemos nada.
+    if (!task) return;
+
+    if (task.requiredPpe && task.requiredPpe.length > 0) {
+      // Si hay EPPs requeridos, abre el modal de verificación
+      setIsPpeCheckOpen(true);
+    } else {
+      // Si no, inicia la tarea directamente
+      startTaskApiCall();
+    }
+  };
+
+  const handleComplete = async () => {
+    try {
+      await api.post(`/tasks/${id}/complete`);
+      toast.success("Tarea marcada como 'completada'");
+      mutate();
     } catch (error) {
       toast.error("Acción fallida", { description: getErrorMessage(error) });
     }
@@ -120,12 +144,12 @@ export default function TaskDetailPage() {
         </div>
         <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 shrink-0">
           {task.status === "pendiente" && (
-            <Button onClick={() => handleAction("start")}>
+            <Button onClick={handleStartAttempt}>
               <PlayCircle className="mr-2 h-4 w-4" /> Iniciar
             </Button>
           )}
           {task.status === "en progreso" && (
-            <Button onClick={() => handleAction("complete")}>
+            <Button onClick={handleComplete}>
               <CheckCircle className="mr-2 h-4 w-4" /> Completar
             </Button>
           )}
@@ -204,14 +228,34 @@ export default function TaskDetailPage() {
             </CardContent>
           </Card>
           <DailyLogSection task={task} />
-          <Card>
-            <CardHeader>
-              <CardTitle>Bitácora y Comentarios</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <TaskComments task={task} />
-            </CardContent>
-          </Card>
+          <Tabs defaultValue="comments">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="comments">
+                Comentarios ({task.comments.length})
+              </TabsTrigger>
+              <TabsTrigger value="history">Historial de Actividad</TabsTrigger>
+            </TabsList>
+            <TabsContent value="comments">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Comentarios</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TaskComments task={task} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="history">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Historial de Actividad</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <TaskActivityHistory taskId={task._id} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* COLUMNA DE METADATOS - Ocupa 1 de 3 columnas en pantallas grandes */}
@@ -273,6 +317,7 @@ export default function TaskDetailPage() {
               )}
             </CardContent>
           </Card>
+          <TaskPpeRequirements task={task} />
         </div>
       </div>
       <StatusChangeDialog
@@ -283,6 +328,12 @@ export default function TaskDetailPage() {
         description={`Para continuar, por favor proporciona una justificación clara para ${
           dialogAction === "cancel" ? "cancelar" : "pausar"
         } esta tarea.`}
+      />
+      <PpeChecklistDialog
+        isOpen={isPpeCheckOpen}
+        onOpenChange={setIsPpeCheckOpen}
+        requiredPpe={task.requiredPpe || []}
+        onConfirm={startTaskApiCall} // Al confirmar, se llama a la API
       />
     </div>
   );

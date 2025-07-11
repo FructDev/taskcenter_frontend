@@ -96,6 +96,7 @@ export interface TaskType {
     createdAt: string;
   }[];
   dailyLogs: DailyLogType[];
+  requiredPpe?: PpeItemType[];
 }
 
 export enum TaskStatus {
@@ -140,6 +141,7 @@ export interface TaskTemplateType {
     | "otro";
   criticality: "baja" | "media" | "alta";
   location?: LocationType;
+  requiredPpe?: PpeItemType[];
 }
 
 export interface ActivityLogType {
@@ -206,4 +208,34 @@ export interface DailyLogType {
   notes: string;
   location: LocationType;
   createdAt: string;
+}
+
+export interface PpeItemType {
+  _id: string;
+  name: string;
+  description?: string;
+}
+
+export enum ActionType {
+  TASK_CREATED = "TAREA_CREADA",
+  TASK_UPDATED = "TAREA_MODIFICADA",
+  TASK_DELETED = "TAREA_ELIMINADA",
+  TASK_STATUS_CHANGED = "CAMBIO_ESTADO_TAREA",
+  TASK_ASSIGNED = "TAREA_ASIGNADA",
+  COMMENT_ADDED = "COMENTARIO_AÑADIDO",
+  ATTACHMENT_ADDED = "ADJUNTO_AÑADIDO",
+  USER_CREATED = "USUARIO_CREADO",
+  USER_UPDATED = "USUARIO_MODIFICADO",
+  USER_DELETED = "USUARIO_ELIMINADO",
+  CONTRACTOR_CREATED = "CONTRATISTA_CREADO",
+  CONTRACTOR_UPDATED = "CONTRATISTA_MODIFICADO",
+  CONTRACTOR_DELETED = "CONTRATISTA_ELIMINADO",
+  LOCATION_CREATED = "UBICACION_CREADA",
+  LOCATION_UPDATED = "UBICACION_MODIFICADA",
+  LOCATION_DELETED = "UBICACION_ELIMINADA",
+  TEMPLATE_CREATED = "PLANTILLA_CREADA",
+  TEMPLATE_UPDATED = "PLANTILLA_MODIFICADA",
+  TEMPLATE_DELETED = "PLANTILLA_ELIMINADA",
+  USER_LOGIN_SUCCESS = "INICIO_SESION_EXITOSO",
+  USER_LOGIN_FAILED = "INICIO_SESION_FALLIDO",
 }

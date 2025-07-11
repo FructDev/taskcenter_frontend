@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Menu } from "lucide-react"; // Usamos Sun como ícono genérico para el menú
+import { Menu, Tv2 } from "lucide-react"; // Usamos Sun como ícono genérico para el menú
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,6 +20,12 @@ import { useAuth } from "@/hooks/use-auth"; // <-- 1. Importamos el hook para ob
 import { Breadcrumbs } from "./Breadcrumbs"; // <-- 2. Importamos nuestro nuevo componente
 import { DashboardNav } from "./DashboardNav";
 import { ThemeToggle } from "./ThemeToggle";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function Header() {
   const logout = useAuthStore((state) => state.logout);
@@ -66,6 +72,21 @@ export function Header() {
       <div className="w-full flex-1">
         <Breadcrumbs />
       </div>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link href="/wallboard" target="_blank">
+              <Button variant="outline" size="icon">
+                <Tv2 className="h-[1.2rem] w-[1.2rem]" />
+                <span className="sr-only">Abrir Modo Pizarra</span>
+              </Button>
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Modo Pizarra / Wallboard</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <ThemeToggle />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

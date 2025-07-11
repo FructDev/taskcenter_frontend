@@ -18,6 +18,7 @@ import {
   History,
   CalendarClock,
   HardHat,
+  ShieldCheck,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +48,7 @@ export function DashboardNav() {
       label: "Tareas Programadas",
       icon: CalendarClock,
     },
+    { href: "/admin/ppe-items", label: "EPP / Seguridad", icon: ShieldCheck },
   ];
 
   const isAdminOrSupervisor =
