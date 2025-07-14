@@ -19,6 +19,7 @@ import {
   CalendarClock,
   HardHat,
   ShieldCheck,
+  Users2,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +36,7 @@ export function DashboardNav() {
     { href: "/tasks", label: "Tareas", icon: ClipboardList },
     { href: "/activity", label: "Bitácora", icon: History },
     { href: "/reports", label: "Informes", icon: BarChart4 },
+    { href: "/workload", label: "Carga de Equipo", icon: Users2 },
   ];
 
   const adminNavItems = [

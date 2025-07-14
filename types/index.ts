@@ -239,3 +239,41 @@ export enum ActionType {
   USER_LOGIN_SUCCESS = "INICIO_SESION_EXITOSO",
   USER_LOGIN_FAILED = "INICIO_SESION_FALLIDO",
 }
+
+export interface WorkloadReportItem {
+  userId: string;
+  userName: string;
+  activeTasks: number;
+  overdueTasks: number;
+}
+
+export interface KpiData {
+  activeTasks: number;
+  overdueTasks: number;
+  createdThisMonth: number;
+  completedThisMonth: number;
+  avgResolutionMilliseconds: number;
+}
+
+export interface ChartDataItem {
+  _id: string;
+  count: number;
+}
+
+export interface ReportDashboardType {
+  kpis: KpiData;
+  tasksByStatus: { status: string; count: number }[];
+  tasksByCriticality: { criticality: CriticalityLevel; count: number }[];
+  tasksByType: { taskType: string; count: number }[];
+  topTechnicians: { userId: string; userName: string; count: number }[];
+  topFailingEquipment: {
+    equipmentId: string;
+    equipmentName: string;
+    count: number;
+  }[];
+  tasksTrend: {
+    month: { year: number; month: number };
+    created: number;
+    completed: number;
+  }[];
+}
