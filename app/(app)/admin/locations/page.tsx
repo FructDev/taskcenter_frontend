@@ -1,7 +1,7 @@
 // app/(app)/admin/locations/page.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { ColumnDef } from "@tanstack/react-table";
 import { PlusCircle } from "lucide-react";
@@ -43,22 +43,22 @@ export default function ManageLocationsPage() {
     undefined
   );
 
-  const handleAddNew = () => {
+  const handleAddNew = useCallback(() => {
     setSelectedItem(undefined);
     setIsFormModalOpen(true);
-  };
+  }, []);
 
-  const handleEdit = (item: LocationType) => {
+  const handleEdit = useCallback((item: LocationType) => {
     setSelectedItem(item);
     setIsFormModalOpen(true);
-  };
+  }, []);
 
-  const handleDeleteAttempt = (item: LocationType) => {
+  const handleDeleteAttempt = useCallback((item: LocationType) => {
     setSelectedItem(item);
     setIsDeleteAlertOpen(true);
-  };
+  }, []);
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = useCallback(async () => {
     if (!selectedItem) return;
     try {
       await api.delete(`/locations/${selectedItem._id}`);
@@ -67,7 +67,7 @@ export default function ManageLocationsPage() {
     } catch (error) {
       toast.error("Error al eliminar", { description: getErrorMessage(error) });
     }
-  };
+  }, [mutate, selectedItem]);
 
   const columns = useMemo<ColumnDef<LocationType>[]>(
     () => [
@@ -97,7 +97,7 @@ export default function ManageLocationsPage() {
         ),
       },
     ],
-    []
+    [handleEdit, handleDeleteAttempt]
   );
 
   const modalTitle = selectedItem
@@ -121,6 +121,8 @@ export default function ManageLocationsPage() {
           columns={columns}
           data={locations || []}
           isLoading={isLoading}
+          onEdit={handleEdit} // <-- AÑADIR ESTA PROP
+          onDelete={handleDeleteAttempt} // <-- Y ESTA
         />
       </div>
 

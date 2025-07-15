@@ -1,7 +1,7 @@
 // app/(app)/admin/scheduled-tasks/page.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { ColumnDef } from "@tanstack/react-table";
 import { PlusCircle } from "lucide-react";
@@ -42,22 +42,22 @@ export default function ManageScheduledTasksPage() {
     ScheduledTaskType | undefined
   >(undefined);
 
-  const handleAddNew = () => {
+  const handleAddNew = useCallback(() => {
     setSelectedItem(undefined);
     setIsFormModalOpen(true);
-  };
+  }, []);
 
-  const handleEdit = (item: ScheduledTaskType) => {
+  const handleEdit = useCallback((item: ScheduledTaskType) => {
     setSelectedItem(item);
     setIsFormModalOpen(true);
-  };
+  }, []);
 
-  const handleDeleteAttempt = (item: ScheduledTaskType) => {
+  const handleDeleteAttempt = useCallback((item: ScheduledTaskType) => {
     setSelectedItem(item);
     setIsDeleteAlertOpen(true);
-  };
+  }, []);
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = useCallback(async () => {
     if (!selectedItem) return;
     try {
       await api.delete(`/scheduled-tasks/${selectedItem._id}`);
@@ -68,7 +68,7 @@ export default function ManageScheduledTasksPage() {
         description: getErrorMessage(error),
       });
     }
-  };
+  }, [selectedItem, mutate]);
 
   const columns = useMemo<ColumnDef<ScheduledTaskType>[]>(
     () => [
@@ -115,7 +115,7 @@ export default function ManageScheduledTasksPage() {
         ),
       },
     ],
-    []
+    [handleEdit, handleDeleteAttempt]
   );
 
   const modalTitle = selectedItem
@@ -139,6 +139,8 @@ export default function ManageScheduledTasksPage() {
           columns={columns}
           data={scheduledTasks || []}
           isLoading={isLoading}
+          onEdit={handleEdit} // <-- Asegúrate de que esta línea esté
+          onDelete={handleDeleteAttempt} // <-- Y esta
         />
       </div>
 

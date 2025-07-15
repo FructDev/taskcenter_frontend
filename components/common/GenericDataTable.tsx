@@ -1,4 +1,3 @@
-// src/components/common/GenericDataTable.tsx
 "use client";
 import {
   ColumnDef,
@@ -14,12 +13,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Skeleton } from "../ui/skeleton";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "../ui/skeleton";
 import { ActionsMenu } from "./ActionsMenu";
 
-// --- INTERFAZ DE PROPS CORREGIDA ---
+// La interfaz de props que define qué datos y funciones acepta el componente
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -44,11 +43,43 @@ export function GenericDataTable<TData, TValue>({
   });
 
   if (isLoading) {
+    // Esqueleto de carga para la vista móvil (lista de tarjetas)
+    if (!isDesktop) {
+      return (
+        <div className="space-y-3">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-28 w-full rounded-lg" />
+          ))}
+        </div>
+      );
+    }
+    // Esqueleto de carga para la vista de escritorio (tabla)
     return (
-      <div className="space-y-4">
-        {[...Array(5)].map((_, i) => (
-          <Skeleton key={i} className="h-24 w-full rounded-lg" />
-        ))}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    <Skeleton className="h-5 w-full" />
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {[...Array(5)].map((_, i) => (
+              <TableRow key={i}>
+                {columns.map((_, j) => (
+                  <TableCell key={j}>
+                    <Skeleton className="h-5 w-full" />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </div>
     );
   }
@@ -61,12 +92,13 @@ export function GenericDataTable<TData, TValue>({
           <Card key={row.id}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
               <CardTitle className="text-base font-semibold leading-tight">
+                {/* La primera columna se usa como título de la tarjeta */}
                 {flexRender(
                   row.getVisibleCells()[0].column.columnDef.cell,
                   row.getVisibleCells()[0].getContext()
                 )}
               </CardTitle>
-              {/* Solo muestra el menú si las funciones onEdit y onDelete fueron provistas */}
+              {/* Se muestra el menú de acciones si se proveen las funciones */}
               {onEdit && onDelete && (
                 <ActionsMenu
                   onEdit={() => onEdit(row.original)}
@@ -75,6 +107,7 @@ export function GenericDataTable<TData, TValue>({
               )}
             </CardHeader>
             <CardContent className="p-4 pt-0 text-sm text-muted-foreground space-y-2">
+              {/* Se muestran el resto de las columnas como "Etiqueta: Valor" */}
               {row
                 .getVisibleCells()
                 .slice(1, -1)
@@ -86,17 +119,20 @@ export function GenericDataTable<TData, TValue>({
                     <span className="font-medium text-foreground/80">
                       {String(cell.column.columnDef.header)}:
                     </span>
-                    <span className="text-right">
+                    <div className="text-right">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
                       )}
-                    </span>
+                    </div>
                   </div>
                 ))}
             </CardContent>
           </Card>
         ))}
+        {table.getRowModel().rows.length === 0 && (
+          <p className="text-center py-8">No se encontraron resultados.</p>
+        )}
       </div>
     );
   }

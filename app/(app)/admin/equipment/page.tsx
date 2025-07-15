@@ -1,7 +1,7 @@
 // app/(app)/admin/equipment/page.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { ColumnDef } from "@tanstack/react-table";
 import { PlusCircle } from "lucide-react";
@@ -43,22 +43,22 @@ export default function ManageEquipmentPage() {
     undefined
   );
 
-  const handleAddNew = () => {
+  const handleAddNew = useCallback(() => {
     setSelectedItem(undefined);
     setIsFormModalOpen(true);
-  };
+  }, []);
 
-  const handleEdit = (item: EquipmentType) => {
+  const handleEdit = useCallback((item: EquipmentType) => {
     setSelectedItem(item);
     setIsFormModalOpen(true);
-  };
+  }, []);
 
-  const handleDeleteAttempt = (item: EquipmentType) => {
+  const handleDeleteAttempt = useCallback((item: EquipmentType) => {
     setSelectedItem(item);
     setIsDeleteAlertOpen(true);
-  };
+  }, []);
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = useCallback(async () => {
     if (!selectedItem) return;
     try {
       await api.delete(`/equipment/${selectedItem._id}`);
@@ -67,7 +67,7 @@ export default function ManageEquipmentPage() {
     } catch (error) {
       toast.error("Error al eliminar", { description: getErrorMessage(error) });
     }
-  };
+  }, [mutate, selectedItem]);
 
   const columns = useMemo<ColumnDef<EquipmentType>[]>(
     () => [
@@ -101,7 +101,7 @@ export default function ManageEquipmentPage() {
         ),
       },
     ],
-    []
+    [handleEdit, handleDeleteAttempt]
   );
 
   const modalTitle = selectedItem ? "Editar Equipo" : "Añadir Nuevo Equipo";
@@ -123,6 +123,8 @@ export default function ManageEquipmentPage() {
           columns={columns}
           data={equipment || []}
           isLoading={isLoading}
+          onEdit={handleEdit} // <-- AÑADIR ESTA PROP
+          onDelete={handleDeleteAttempt} // <-- Y ESTA
         />
       </div>
 

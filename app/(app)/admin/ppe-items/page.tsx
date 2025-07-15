@@ -1,6 +1,6 @@
 // app/(app)/admin/ppe-items/page.tsx
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { ColumnDef } from "@tanstack/react-table";
 import { PlusCircle } from "lucide-react";
@@ -38,20 +38,20 @@ export default function ManagePpeItemsPage() {
     undefined
   );
 
-  const handleAddNew = () => {
+  const handleAddNew = useCallback(() => {
     setSelectedItem(undefined);
     setIsFormModalOpen(true);
-  };
-  const handleEdit = (item: PpeItemType) => {
+  }, []);
+  const handleEdit = useCallback((item: PpeItemType) => {
     setSelectedItem(item);
     setIsFormModalOpen(true);
-  };
-  const handleDeleteAttempt = (item: PpeItemType) => {
+  }, []);
+  const handleDeleteAttempt = useCallback((item: PpeItemType) => {
     setSelectedItem(item);
     setIsDeleteAlertOpen(true);
-  };
+  }, []);
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = useCallback(async () => {
     if (!selectedItem) return;
     try {
       await api.delete(`/ppe-items/${selectedItem._id}`);
@@ -60,7 +60,7 @@ export default function ManagePpeItemsPage() {
     } catch (error) {
       toast.error("Error al eliminar", { description: getErrorMessage(error) });
     }
-  };
+  }, [mutate, selectedItem]);
 
   const columns = useMemo<ColumnDef<PpeItemType>[]>(
     () => [
@@ -76,7 +76,7 @@ export default function ManagePpeItemsPage() {
         ),
       },
     ],
-    []
+    [handleEdit, handleDeleteAttempt]
   );
 
   const modalTitle = selectedItem ? "Editar EPP" : "Crear Nuevo EPP";

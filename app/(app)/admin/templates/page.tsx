@@ -1,7 +1,7 @@
 // app/(app)/admin/templates/page.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { ColumnDef } from "@tanstack/react-table";
 import { PlusCircle } from "lucide-react";
@@ -44,31 +44,31 @@ export default function ManageTemplatesPage() {
     TaskTemplateType | undefined
   >(undefined);
 
-  const handleAddNew = () => {
+  const handleAddNew = useCallback(() => {
     setSelectedItem(undefined);
     setIsFormModalOpen(true);
-  };
+  }, []);
 
-  const handleEdit = (item: TaskTemplateType) => {
+  const handleEdit = useCallback((item: TaskTemplateType) => {
     setSelectedItem(item);
     setIsFormModalOpen(true);
-  };
+  }, []);
 
-  const handleDeleteAttempt = (item: TaskTemplateType) => {
+  const handleDeleteAttempt = useCallback((item: TaskTemplateType) => {
     setSelectedItem(item);
     setIsDeleteAlertOpen(true);
-  };
+  }, []);
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = useCallback(async () => {
     if (!selectedItem) return;
     try {
       await api.delete(`/task-templates/${selectedItem._id}`);
       toast.success("Plantilla eliminada.");
-      mutate(); // Refresca la lista de plantillas
+      mutate();
     } catch (error) {
       toast.error("Error al eliminar", { description: getErrorMessage(error) });
     }
-  };
+  }, [selectedItem, mutate]);
 
   const columns = useMemo<ColumnDef<TaskTemplateType>[]>(
     () => [
@@ -102,7 +102,7 @@ export default function ManageTemplatesPage() {
         ),
       },
     ],
-    []
+    [handleEdit, handleDeleteAttempt] // <-- Añadimos las dependencias
   );
 
   const modalTitle = selectedItem
@@ -126,6 +126,8 @@ export default function ManageTemplatesPage() {
           columns={columns}
           data={templates || []}
           isLoading={isLoading}
+          onEdit={handleEdit}
+          onDelete={handleDeleteAttempt}
         />
       </div>
 

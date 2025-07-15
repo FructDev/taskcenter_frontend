@@ -1,7 +1,7 @@
 // app/(app)/admin/contractors/page.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { ColumnDef } from "@tanstack/react-table";
 import { PlusCircle } from "lucide-react";
@@ -43,22 +43,22 @@ export default function ManageContractorsPage() {
     undefined
   );
 
-  const handleAddNew = () => {
+  const handleAddNew = useCallback(() => {
     setSelectedItem(undefined);
     setIsFormModalOpen(true);
-  };
+  }, []);
 
-  const handleEdit = (item: ContractorType) => {
+  const handleEdit = useCallback((item: ContractorType) => {
     setSelectedItem(item);
     setIsFormModalOpen(true);
-  };
+  }, []);
 
-  const handleDeleteAttempt = (item: ContractorType) => {
+  const handleDeleteAttempt = useCallback((item: ContractorType) => {
     setSelectedItem(item);
     setIsDeleteAlertOpen(true);
-  };
+  }, []);
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = useCallback(async () => {
     if (!selectedItem) return;
     try {
       await api.delete(`/contractors/${selectedItem._id}`);
@@ -67,7 +67,7 @@ export default function ManageContractorsPage() {
     } catch (error) {
       toast.error("Error al eliminar", { description: getErrorMessage(error) });
     }
-  };
+  }, [selectedItem, mutate]);
 
   const columns = useMemo<ColumnDef<ContractorType>[]>(
     () => [
@@ -88,7 +88,7 @@ export default function ManageContractorsPage() {
         },
       },
     ],
-    []
+    [handleEdit, handleDeleteAttempt]
   );
 
   const modalTitle = selectedItem

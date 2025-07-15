@@ -12,7 +12,7 @@ import { getErrorMessage } from "@/lib/handle-error";
 import { useUsers } from "@/hooks/use-users";
 
 import { PageHeader } from "@/components/common/page-header";
-import { UsersDataTable } from "@/components/users/UsersDataTable";
+// import { UsersDataTable } from "@/components/users/UsersDataTable";
 import { UserActions } from "@/components/users/UserActions";
 import { UserForm } from "@/components/users/UserForm";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
+import { GenericDataTable } from "@/components/common/GenericDataTable";
 
 export default function ManageUsersPage() {
   const { users, isLoading, mutate: mutateUsers } = useUsers();
@@ -122,7 +123,7 @@ export default function ManageUsersPage() {
             </Button>
           }
         />
-        <UsersDataTable
+        <GenericDataTable
           columns={columns}
           data={users || []}
           isLoading={isLoading}
