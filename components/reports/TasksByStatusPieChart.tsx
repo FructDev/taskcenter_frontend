@@ -8,71 +8,83 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { useReport } from "@/hooks/use-report";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from "../ui/card";
-import { Skeleton } from "../ui/skeleton";
+} from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
-interface StatusReportData {
+interface ChartData {
   status: string;
   count: number;
 }
 
+interface ChartProps {
+  data: ChartData[];
+  filters: Record<string, string>; // <-- 1. Recibe el objeto de filtros completo
+  onFilterChange: (filter: { status: string } | null) => void; // <-- 2. Acepta null para limpiar
+}
+
 const COLORS: { [key: string]: string } = {
-  pendiente: "#f59e0b", // amber-500
-  "en progreso": "#3b82f6", // blue-500
-  completada: "#22c55e", // green-500
-  cancelada: "#64748b", // slate-500
+  pendiente: "#f59e0b",
+  "en progreso": "#3b82f6",
+  pausada: "#64748b",
 };
 
-export function TasksByStatusPieChart() {
-  const { data, isLoading, isError } =
-    useReport<StatusReportData[]>("tasks-by-status");
-
-  if (isLoading) return <Skeleton className="h-[350px] w-full" />;
-  if (isError || !data)
-    return (
-      <Card className="h-[350px] flex items-center justify-center">
-        <p className="text-destructive">No se pudo cargar el informe.</p>
-      </Card>
-    );
+export function TasksByStatusPieChart({
+  data,
+  filters,
+  onFilterChange,
+}: ChartProps) {
+  const handleClick = (payload: ChartData) => {
+    // 3. Lógica de toggle: si el filtro ya está activo, lo limpiamos pasando null.
+    if (filters.status === payload.status) {
+      onFilterChange(null);
+    } else {
+      onFilterChange({ status: payload.status });
+    }
+  };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Tareas por Estado</CardTitle>
+        <CardTitle>Tareas Activas por Estado</CardTitle>
         <CardDescription>
-          Distribución actual de todas las tareas.
+          Haz clic en una sección para filtrar todo el dashboard.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div style={{ width: "100%", height: 250 }}>
+        <div style={{ width: "100%", height: 300 }}>
           <ResponsiveContainer>
             <PieChart>
               <Pie
                 data={data}
-                cx="50%"
-                cy="50%"
-                innerRadius={60} // <-- Esto lo convierte en un gráfico de dona
-                outerRadius={90}
-                paddingAngle={5}
                 dataKey="count"
                 nameKey="status"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                onClick={handleClick}
+                className="cursor-pointer"
               >
-                {data.map((entry, index) => (
+                {data.map((entry) => (
+                  // Añadimos una opacidad si la sección no es el filtro activo
                   <Cell
-                    key={`cell-${index}`}
+                    key={`cell-${entry.status}`}
                     fill={COLORS[entry.status] || "#cccccc"}
+                    className={cn(
+                      filters.status &&
+                        filters.status !== entry.status &&
+                        "opacity-30"
+                    )}
                   />
                 ))}
               </Pie>
-              <Tooltip formatter={(value) => [value, "Tareas"]} />
-              <Legend iconType="circle" />
+              <Tooltip />
+              <Legend />
             </PieChart>
           </ResponsiveContainer>
         </div>

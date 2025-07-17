@@ -1,4 +1,4 @@
-// src/components/reports/TasksByCriticalityBarChart.tsx
+// src/components/reports/TasksByTypeBarChart.tsx
 "use client";
 import {
   BarChart,
@@ -7,7 +7,7 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  Cell,
+  //   Legend,
 } from "recharts";
 import {
   Card,
@@ -18,45 +18,47 @@ import {
 } from "@/components/ui/card";
 
 interface ChartData {
-  criticality: "baja" | "media" | "alta";
+  taskType: string;
   count: number;
 }
 
 interface ChartProps {
   data: ChartData[];
-  onFilterChange: (filter: { criticality: string }) => void;
+  onFilterChange: (filter: { taskType: string }) => void;
 }
 
-// Definimos colores para cada nivel de criticidad
-const COLORS = {
-  baja: "#22c55e", // green-500
-  media: "#f59e0b", // amber-500
-  alta: "#ef4444", // red-500
-};
+export function TasksByTypeBarChart({ data, onFilterChange }: ChartProps) {
+  // Damos formato a los datos para que el gráfico los muestre mejor
+  const chartData = data.map((item) => ({
+    // Capitalizamos y quitamos guiones bajos para una mejor lectura
+    name:
+      item.taskType.charAt(0).toUpperCase() +
+      item.taskType.slice(1).replace(/_/g, " "),
+    // El valor real que se usará en el onClick
+    taskType: item.taskType,
+    "Nº Tareas": item.count,
+  }));
 
-export function TasksByCriticalityBarChart({
-  data,
-  onFilterChange,
-}: ChartProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Tareas por Criticidad</CardTitle>
+        <CardTitle>Tareas por Tipo</CardTitle>
         <CardDescription>
-          Distribución de tareas activas por urgencia.
+          Distribución de tareas activas por su naturaleza.
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div style={{ width: "100%", height: 300 }}>
           <ResponsiveContainer>
-            <BarChart data={data} layout="vertical" margin={{ left: 10 }}>
+            <BarChart data={chartData} layout="vertical" margin={{ left: 40 }}>
               <XAxis type="number" hide />
               <YAxis
                 type="category"
-                dataKey="criticality"
+                dataKey="name"
+                width={120}
                 axisLine={false}
                 tickLine={false}
-                className="capitalize text-xs"
+                className="text-xs"
               />
               <Tooltip
                 cursor={{ fill: "#fff" }}
@@ -68,20 +70,14 @@ export function TasksByCriticalityBarChart({
                 }}
               />
               <Bar
-                dataKey="count"
+                dataKey="Nº Tareas"
+                fill="#3b82f6" /* blue-500 */
                 radius={[0, 4, 4, 0]}
                 className="cursor-pointer"
                 onClick={(payload) =>
-                  onFilterChange({ criticality: payload.criticality })
+                  onFilterChange({ taskType: payload.taskType })
                 }
-              >
-                {data.map((entry) => (
-                  <Cell
-                    key={`cell-${entry.criticality}`}
-                    fill={COLORS[entry.criticality] || "#cccccc"}
-                  />
-                ))}
-              </Bar>
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
