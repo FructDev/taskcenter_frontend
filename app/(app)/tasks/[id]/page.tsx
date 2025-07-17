@@ -47,8 +47,10 @@ import { PpeChecklistDialog } from "@/components/tasks/PpeChecklistDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TaskActivityHistory } from "@/components/tasks/TaskActivityHistory";
 import { TaskPpeRequirements } from "@/components/tasks/TaskPpeRequirements";
-import { addActionToQueue } from "@/lib/sync-queue.service";
-import { TaskStatus } from "@/types";
+// import { addActionToQueue } from "@/lib/sync-queue.service";
+// import { TaskStatus } from "@/types";
+import api from "@/lib/api";
+import { getErrorMessage } from "@/lib/handle-error";
 
 export default function TaskDetailPage() {
   const params = useParams();
@@ -61,19 +63,13 @@ export default function TaskDetailPage() {
   const [isPpeCheckOpen, setIsPpeCheckOpen] = useState(false);
 
   const startTaskApiCall = async () => {
-    if (!task) return;
-
-    // Actualización optimista: cambiamos el estado en la UI al instante
-    mutate({ ...task, status: TaskStatus.EN_PROGRESO }, false);
-
-    // Guardamos la acción en la cola para sincronizar después
-    await addActionToQueue({
-      type: "API_CALL",
-      payload: { method: "POST", url: `/tasks/${id}/start` },
-    });
-    toast.info(
-      "Acción registrada. La tarea se iniciará y sincronizará en segundo plano."
-    );
+    try {
+      await api.post(`/tasks/${id}/start`);
+      toast.success("Tarea marcada como 'en progreso'");
+      mutate();
+    } catch (error) {
+      toast.error("Acción fallida", { description: getErrorMessage(error) });
+    }
   };
 
   // Este manejador ahora decide si abre el modal o inicia la tarea directamente
@@ -87,13 +83,13 @@ export default function TaskDetailPage() {
   };
 
   const handleComplete = async () => {
-    if (!task) return;
-    mutate({ ...task, status: TaskStatus.COMPLETADA }, false);
-    await addActionToQueue({
-      type: "API_CALL",
-      payload: { method: "POST", url: `/tasks/${id}/complete` },
-    });
-    toast.info("Acción registrada. La tarea se completará y sincronizará.");
+    try {
+      await api.post(`/tasks/${id}/complete`);
+      toast.success("Tarea marcada como 'completada'");
+      mutate();
+    } catch (error) {
+      toast.error("Acción fallida", { description: getErrorMessage(error) });
+    }
   };
 
   if (isLoading) return <TaskDetailSkeleton />;
@@ -109,31 +105,28 @@ export default function TaskDetailPage() {
     "No asignada";
 
   const handleResume = async () => {
-    if (!task) return;
-    mutate({ ...task, status: TaskStatus.EN_PROGRESO }, false);
-    await addActionToQueue({
-      type: "API_CALL",
-      payload: { method: "POST", url: `/tasks/${id}/resume` },
-    });
-    toast.info("Acción registrada. La tarea se reanudará y sincronizará.");
+    try {
+      await api.post(`/tasks/${id}/resume`);
+      toast.success("Tarea reanudada.");
+      mutate();
+    } catch (error) {
+      toast.error("Acción fallida", { description: getErrorMessage(error) });
+    }
   };
 
   const handleStatusChangeWithReason = async (reason: string) => {
-    if (!dialogAction || !task) return;
-    const actionToQueue = dialogAction;
-    const newStatus =
-      dialogAction === "pause" ? TaskStatus.PAUSADA : TaskStatus.CANCELADA;
-    mutate({ ...task, status: newStatus }, false);
-
-    await addActionToQueue({
-      type: "API_CALL",
-      payload: {
-        method: "POST",
-        url: `/tasks/${id}/${actionToQueue}`,
-        body: { reason }, // El cuerpo de la petición con la justificación
-      },
-    });
-    toast.info(`Acción de '${actionToQueue}' registrada. Se sincronizará.`);
+    if (!dialogAction) return;
+    try {
+      await api.post(`/tasks/${id}/${dialogAction}`, { reason });
+      toast.success(
+        `Tarea marcada como ${
+          dialogAction === "cancel" ? "cancelada" : "pausada"
+        }.`
+      );
+      mutate();
+    } catch (error) {
+      toast.error("Acción fallida", { description: getErrorMessage(error) });
+    }
   };
 
   return (
