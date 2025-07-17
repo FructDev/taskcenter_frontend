@@ -1,20 +1,28 @@
-// src/hooks/use-media-query.ts
-"use client";
+import { useEffect, useState } from "react";
 
-import { useState, useEffect } from "react";
-
-export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(false);
+/**
+ * Devuelve:
+ *   • `true`  → la media query coincide
+ *   • `false` → no coincide
+ *   • `undefined` → aún no sabemos (solo sucede durante SSR / primer render)
+ */
+export function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState<boolean | undefined>(undefined);
 
   useEffect(() => {
+    // Evita ejecutar en SSR
+    if (typeof window === "undefined") return;
+
     const media = window.matchMedia(query);
-    if (media.matches !== matches) {
-      setMatches(media.matches);
-    }
     const listener = () => setMatches(media.matches);
-    window.addEventListener("resize", listener);
-    return () => window.removeEventListener("resize", listener);
-  }, [matches, query]);
+
+    // Establece el valor inicial y suscribe cambios
+    listener();
+    media.addEventListener("change", listener);
+
+    // Limpieza
+    return () => media.removeEventListener("change", listener);
+  }, [query]);
 
   return matches;
 }

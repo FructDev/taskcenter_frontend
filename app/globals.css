@@ -3,6 +3,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
+html,
+body {
+  height: 100%;
+  overflow: hidden; /* <— clave: el body ya no creará barras */
+}
+
 /* ------------------------------------------------------------
    Semantic design-tokens ⇄ Tailwind via shadcn/ui utilities
    ------------------------------------------------------------ */

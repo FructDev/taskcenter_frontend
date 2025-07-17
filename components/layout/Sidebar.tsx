@@ -5,8 +5,9 @@ import { DashboardNav } from "./DashboardNav"; // <-- Importamos nuestro nuevo c
 
 export function Sidebar() {
   return (
-    <aside className="hidden border-r bg-muted/40 md:block">
-      <div className="flex h-full max-h-screen flex-col gap-2">
+    /* 👇 fijo a la izquierda en pantallas ≥ md */
+    <aside className="hidden border-r bg-muted/40 md:block w-[220px] lg:w-[280px]">
+      <div className="flex h-full max-h-screen flex-col">
         <div className="flex h-14 items-center border-b px-6">
           <Link
             href="/dashboard"
@@ -21,7 +22,9 @@ export function Sidebar() {
             <span>Parque Solar Girasol</span>
           </Link>
         </div>
-        <div className="flex-1 py-2 overflow-y-auto">
+
+        {/* Propio scroll para el menú si crece */}
+        <div className="flex-1 overflow-y-auto py-2">
           <DashboardNav />
         </div>
       </div>
