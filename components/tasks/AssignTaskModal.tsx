@@ -1,7 +1,7 @@
 // src/components/tasks/AssignTaskModal.tsx
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,8 +21,7 @@ import {
 } from "@/components/ui/select";
 import { useUsers } from "@/hooks/use-users";
 import { useContractors } from "@/hooks/use-contractors";
-import { useWorkloadReport } from "@/hooks/use-workload-report"; // <-- 1. Importamos el nuevo hook
-import { TaskType, ContractorType, UserRole } from "@/types";
+import { TaskType, UserType, ContractorType, UserRole } from "@/types";
 import api from "@/lib/api";
 import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/handle-error";
@@ -36,33 +35,21 @@ interface AssignTaskModalProps {
 }
 
 export function AssignTaskModal({ task }: AssignTaskModalProps) {
-  const { user: currentUser } = useAuth();
-  const { users, isLoading: isLoadingUsers } = useUsers();
-  const { contractors, isLoading: isLoadingContractors } = useContractors();
-  const { workload, isLoading: isLoadingWorkload } = useWorkloadReport(); // <-- 2. Obtenemos los datos de carga
+  const { user: currentUser } = useAuth(); // Obtenemos el usuario logueado
+  const { users } = useUsers();
+  const { contractors } = useContractors();
   const { mutate: mutateSingleTask } = useTask(task._id);
   const { mutate: mutateTaskList } = useTasks();
   const [isOpen, setIsOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 3. Usamos useMemo para crear una lista de usuarios "enriquecida" con su carga de trabajo
-  const usersWithWorkload = useMemo(() => {
-    if (!users) return []; // Si no hay usuarios, devolvemos un array vacío
-    // Si la carga de trabajo aún no ha llegado, mostramos los usuarios sin el dato extra
-    if (!workload) return users.map((u) => ({ ...u, workloadLabel: "" }));
+  if (!currentUser) return null; // No mostrar nada si no se ha cargado el usuario
 
-    return users.map((user) => {
-      const userWorkload = workload.find((w) => w.userId === user._id);
-      const activeTasks = userWorkload?.activeTasks || 0;
-      return {
-        ...user,
-        workloadLabel: `(${activeTasks} activas)`,
-      };
-    });
-  }, [users, workload]);
+  const técnicos = users?.filter((u) => u.role === "tecnico");
+  const supervisoresYPlanificadores = users?.filter(
+    (u) => u.role === "supervisor" || u.role === "planificador"
+  );
 
   const handleValueChange = async (value: string) => {
-    setIsSubmitting(true);
     let payload = {};
     const isUser = users?.some((u) => u._id === value);
 
@@ -76,22 +63,18 @@ export function AssignTaskModal({ task }: AssignTaskModalProps) {
 
     try {
       await api.patch(`/tasks/${task._id}`, payload);
-      toast.success("Asignación actualizada.");
-      mutateSingleTask();
-      mutateTaskList();
-      setIsOpen(false);
+      toast.success("Asignación actualizada correctamente.");
+      mutateSingleTask(); // Refresca los datos de esta tarea
+      mutateTaskList(); // Refresca la lista general de tareas (dashboard)
+      setIsOpen(false); // Cierra el modal
     } catch (error) {
       toast.error("Error al actualizar la asignación", {
         description: getErrorMessage(error),
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
-  if (!currentUser) return null;
-
-  // Lógica de permisos (sin cambios)
+  // Lógica para decidir qué opciones mostrar en el Select
   const canUnassign = [
     UserRole.ADMIN,
     UserRole.SUPERVISOR,
@@ -100,9 +83,6 @@ export function AssignTaskModal({ task }: AssignTaskModalProps) {
   const canAssignToAnyone = [UserRole.ADMIN, UserRole.SUPERVISOR].includes(
     currentUser.role as UserRole
   );
-
-  const isLoadingData =
-    isLoadingUsers || isLoadingContractors || isLoadingWorkload;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -117,71 +97,82 @@ export function AssignTaskModal({ task }: AssignTaskModalProps) {
           <DialogTitle>Asignar Responsable</DialogTitle>
         </DialogHeader>
         <div className="py-4">
-          <Select onValueChange={handleValueChange} disabled={isSubmitting}>
+          <Select onValueChange={handleValueChange}>
             <SelectTrigger>
               <SelectValue placeholder="Seleccionar un responsable..." />
             </SelectTrigger>
             <SelectContent>
-              {isLoadingData ? (
-                <SelectItem value="loading" disabled>
-                  Cargando...
-                </SelectItem>
-              ) : (
-                <>
-                  {canUnassign && (
-                    <SelectItem value="unassigned">
-                      -- Sin Asignar --
-                    </SelectItem>
-                  )}
+              {canUnassign && (
+                <SelectItem value="unassigned">-- Sin Asignar --</SelectItem>
+              )}
 
-                  {/* 4. Usamos la nueva lista 'usersWithWorkload' en todas partes */}
+              {/* Si el rol es Admin o Supervisor, muestra a TODOS los usuarios agrupados */}
+              {canAssignToAnyone && users && (
+                <>
                   <SelectGroup>
                     <SelectLabel>Técnicos</SelectLabel>
-                    {usersWithWorkload
+                    {users
                       .filter((u) => u.role === "tecnico")
-                      .map((user) => (
+                      .map((user: UserType) => (
                         <SelectItem key={user._id} value={user._id}>
-                          <div className="flex justify-between w-full">
-                            <span>{user.name}</span>
-                            <span className="text-xs text-muted-foreground ml-2">
-                              {user.workloadLabel}
-                            </span>
-                          </div>
+                          {user.name}
                         </SelectItem>
                       ))}
                   </SelectGroup>
-
-                  {canAssignToAnyone && (
-                    <SelectGroup>
-                      <SelectLabel>Gestión y Supervisión</SelectLabel>
-                      {usersWithWorkload
-                        .filter((u) => u.role !== "tecnico")
-                        .map((user) => (
-                          <SelectItem key={user._id} value={user._id}>
-                            <div className="flex justify-between w-full">
-                              <span>
-                                {user.name} ({user.role})
-                              </span>
-                              <span className="text-xs text-muted-foreground ml-2">
-                                {user.workloadLabel}
-                              </span>
-                            </div>
-                          </SelectItem>
-                        ))}
-                    </SelectGroup>
-                  )}
-
-                  {contractors && (
-                    <SelectGroup>
-                      <SelectLabel>Empresas Contratistas</SelectLabel>
-                      {contractors.map((c: ContractorType) => (
-                        <SelectItem key={c._id} value={c._id}>
-                          {c.companyName}
+                  <SelectGroup>
+                    <SelectLabel>Gestión y Supervisión</SelectLabel>
+                    {users
+                      .filter((u) => u.role !== "tecnico")
+                      .map((user: UserType) => (
+                        <SelectItem key={user._id} value={user._id}>
+                          {user.name} ({user.role})
                         </SelectItem>
                       ))}
-                    </SelectGroup>
-                  )}
+                  </SelectGroup>
                 </>
+              )}
+
+              {/* Si el rol es Planificador, muestra solo a los técnicos */}
+              {currentUser.role === UserRole.PLANIFICADOR && técnicos && (
+                <SelectGroup>
+                  <SelectLabel>Técnicos Internos</SelectLabel>
+                  {técnicos.map((user: UserType) => (
+                    <SelectItem key={user._id} value={user._id}>
+                      {user.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              )}
+
+              {/* Lógica para Técnico y otros roles (EHS, etc.) */}
+              {currentUser.role === UserRole.TECNICO && (
+                <SelectItem value={currentUser._id}>
+                  {currentUser.name} (Yo)
+                </SelectItem>
+              )}
+              {(currentUser.role === UserRole.EHS ||
+                currentUser.role === UserRole.SEGURIDAD_PATRIMONIAL) &&
+                supervisoresYPlanificadores && (
+                  <SelectGroup>
+                    <SelectLabel>Supervisión</SelectLabel>
+                    {supervisoresYPlanificadores.map((user: UserType) => (
+                      <SelectItem key={user._id} value={user._id}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+
+              {/* Los contratistas son visibles para casi todos los que pueden asignar */}
+              {contractors && (
+                <SelectGroup>
+                  <SelectLabel>Empresas Contratistas</SelectLabel>
+                  {contractors.map((c: ContractorType) => (
+                    <SelectItem key={c._id} value={c._id}>
+                      {c.companyName}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               )}
             </SelectContent>
           </Select>

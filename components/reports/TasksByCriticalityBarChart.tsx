@@ -6,82 +6,60 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  //   Legend,
   ResponsiveContainer,
-  Cell,
 } from "recharts";
+import { useReport } from "@/hooks/use-report";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card";
+} from "../ui/card";
+import { Skeleton } from "../ui/skeleton";
 
-interface ChartData {
-  criticality: "baja" | "media" | "alta";
+interface CriticalityReportData {
+  criticality: string;
   count: number;
 }
 
-interface ChartProps {
-  data: ChartData[];
-  onFilterChange: (filter: { criticality: string }) => void;
-}
+export function TasksByCriticalityBarChart() {
+  const { data, isLoading, isError } = useReport<CriticalityReportData[]>(
+    "tasks-by-criticality"
+  );
+  if (isLoading) return <Skeleton className="h-[350px] w-full" />;
+  if (isError || !data)
+    return (
+      <Card className="h-[350px] flex items-center justify-center">
+        <p className="text-destructive">No se pudo cargar el informe.</p>
+      </Card>
+    );
 
-// Definimos colores para cada nivel de criticidad
-const COLORS = {
-  baja: "#22c55e", // green-500
-  media: "#f59e0b", // amber-500
-  alta: "#ef4444", // red-500
-};
-
-export function TasksByCriticalityBarChart({
-  data,
-  onFilterChange,
-}: ChartProps) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>Tareas por Criticidad</CardTitle>
         <CardDescription>
-          Distribución de tareas activas por urgencia.
+          Conteo de tareas según su nivel de criticidad.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div style={{ width: "100%", height: 300 }}>
+        <div style={{ width: "100%", height: 250 }}>
           <ResponsiveContainer>
-            <BarChart data={data} layout="vertical" margin={{ left: 10 }}>
+            <BarChart data={data} layout="vertical">
               <XAxis type="number" hide />
               <YAxis
                 type="category"
                 dataKey="criticality"
-                axisLine={false}
+                width={80}
+                stroke="#888888"
+                fontSize={12}
                 tickLine={false}
-                className="capitalize text-xs"
+                axisLine={false}
               />
-              <Tooltip
-                cursor={{ fill: "#fff" }}
-                contentStyle={{
-                  borderColor: "hsl(var(--border))",
-                  borderRadius: "calc(var(--radius) - 2px)", // Un radio un poco más pequeño
-                  boxShadow:
-                    "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-                }}
-              />
-              <Bar
-                dataKey="count"
-                radius={[0, 4, 4, 0]}
-                className="cursor-pointer"
-                onClick={(payload) =>
-                  onFilterChange({ criticality: payload.criticality })
-                }
-              >
-                {data.map((entry) => (
-                  <Cell
-                    key={`cell-${entry.criticality}`}
-                    fill={COLORS[entry.criticality] || "#cccccc"}
-                  />
-                ))}
-              </Bar>
+              <Tooltip cursor={{ fill: "transparent" }} />
+              <Bar dataKey="count" fill="#8884d8" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
