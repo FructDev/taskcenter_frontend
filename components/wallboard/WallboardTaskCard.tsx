@@ -1,34 +1,57 @@
-// src/components/wallboard/WallboardTaskCard.tsx
 "use client";
 import { TaskType } from "@/types";
 import { cn } from "@/lib/utils";
-import { CalendarDays, MapPin } from "lucide-react";
+import { Check, MapPin } from "lucide-react";
 import { format, isPast, isToday, isTomorrow } from "date-fns";
 import { es } from "date-fns/locale";
+import { Badge } from "../ui/badge";
 
 const getUrgencyStyles = (task: TaskType): string => {
-  if (task.status === "completada")
-    return "bg-slate-100 dark:bg-slate-800/50 opacity-70 border-slate-500/30";
-  if (task.status === "pausada") return "bg-sky-500/10 border-sky-500/40";
-  if (!task.dueDate) return "bg-card";
+  // 1. Manejar estados finales (inactivos)
+  if (task.status === "completada" || task.status === "cancelada") {
+    return "bg-slate-100 dark:bg-slate-800/30 opacity-70 border-l-4 border-transparent";
+  }
+
+  // 2. Manejar estados informativos
+  if (task.status === "pausada") {
+    return "bg-sky-500/5 dark:bg-sky-500/10 border-l-4 border-l-sky-500";
+  }
+
+  // Si no hay fecha de vencimiento, es neutral
+  if (!task.dueDate) {
+    return "bg-card border-l-4 border-transparent";
+  }
+
   const date = new Date(task.dueDate);
-  if (isPast(date) && !isToday(date))
-    return "bg-destructive/10 border-destructive/50";
-  if (isToday(date)) return "bg-orange-500/10 border-orange-500/50";
-  if (isTomorrow(date)) return "bg-yellow-500/10 border-yellow-500/50";
-  return "bg-green-100";
+
+  // 3. Sistema de "Semáforo" para la urgencia
+  if (isPast(date) && !isToday(date)) {
+    return "bg-red-500/5 dark:bg-red-500/10 border-l-4 border-l-red-500"; // Vencida
+  }
+  if (isToday(date)) {
+    return "bg-orange-500/5 dark:bg-orange-500/10 border-l-4 border-l-orange-500"; // Vence Hoy
+  }
+  if (isTomorrow(date)) {
+    return "bg-yellow-500/5 dark:bg-yellow-500/10 border-l-4 border-l-yellow-500"; // Vence Mañana
+  }
+
+  // 4. El nuevo estado para tareas "a tiempo"
+  return "bg-green-500/5 dark:bg-green-500/10 border-l-4 border-l-green-500"; // A Tiempo
 };
 
 export function WallboardTaskCard({ task }: { task: TaskType }) {
+  if (!task) return null; // Guardia de seguridad
+
   const dueDate = new Date(task.dueDate);
+  const isOverdue = isPast(dueDate) && !isToday(dueDate);
+  const isDueToday = isToday(dueDate);
+  const isDueTomorrow = isTomorrow(dueDate);
 
-  const isDueToday = isToday(dueDate) && task.status !== "completada";
-  const isDueTomorrow = isTomorrow(dueDate) && task.status !== "completada";
+  // 1. Lógica para verificar si hay un parte diario para hoy
+  const hasDailyLogToday = task.dailyLogs?.some((log) =>
+    isToday(new Date(log.createdAt))
+  );
 
-  const isOverdue =
-    isPast(new Date(task.dueDate)) &&
-    !isToday(new Date(task.dueDate)) &&
-    task.status !== "completada";
   return (
     <div
       className={cn(
@@ -36,32 +59,48 @@ export function WallboardTaskCard({ task }: { task: TaskType }) {
         getUrgencyStyles(task)
       )}
     >
-      <p className="font-semibold break-words">{task.title}</p>
+      {/* Fila 1: Título y la nueva insignia de Revalidación */}
+      <div className="flex justify-between items-start gap-2">
+        <p className="font-semibold break-words">{task.title}</p>
+        {/* 2. Se muestra la insignia si la tarea fue revalidada hoy */}
+        {hasDailyLogToday && (
+          <Badge
+            variant="default"
+            className="bg-blue-600 text-white whitespace-nowrap text-xs h-5"
+          >
+            <Check className="h-3 w-3 mr-1" /> Revalidada
+          </Badge>
+        )}
+      </div>
 
-      {/* 1. AÑADIMOS LA UBICACIÓN */}
-      <p className="text-xs text-muted-foreground mt-1 truncate flex items-center">
+      {/* Fila 2: Ubicación */}
+      <p className="text-xs text-muted-foreground mt-1.5 truncate flex items-center">
         <MapPin className="h-3 w-3 mr-1.5 shrink-0" />
         {task.location.name}
       </p>
 
-      <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
-        <p className="truncate">
-          {task.assignedTo?.name ||
-            task.contractorAssociated?.companyName ||
-            "Sin Asignar"}
-        </p>
-
-        {/* 2. AÑADIMOS ETIQUETA "VENCE" Y COLORES DINÁMICOS */}
+      {/* Fila 3: Footer con Asignado, Fecha de Creación y Vencimiento */}
+      <div className="flex justify-between items-end mt-2 text-xs text-muted-foreground pt-2 border-t">
+        <div className="truncate">
+          <p className="font-medium">
+            {task.assignedTo?.name ||
+              task.contractorAssociated?.companyName ||
+              "Sin Asignar"}
+          </p>
+          {/* 3. Mostramos la fecha de creación absoluta */}
+          <p>
+            Creada: {format(new Date(task.createdAt), "dd MMM", { locale: es })}
+          </p>
+        </div>
         <div
           className={cn(
-            "flex items-center gap-1 font-medium",
+            "text-right font-semibold whitespace-nowrap",
             isOverdue && "text-red-500",
             isDueToday && "text-orange-500",
             isDueTomorrow && "text-yellow-600"
           )}
         >
-          <CalendarDays className="h-3 w-3" />
-          <span>Vence: {format(dueDate, "dd MMM", { locale: es })}</span>
+          Vence: {format(dueDate, "dd MMM", { locale: es })}
         </div>
       </div>
     </div>

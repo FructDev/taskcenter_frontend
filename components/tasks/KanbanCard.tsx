@@ -14,7 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
   format,
-  formatDistanceToNow,
+  // formatDistanceToNow,
   isPast,
   isToday,
   isTomorrow,
@@ -42,34 +42,60 @@ interface KanbanCardProps {
 
 // La lógica de estilos de fondo por urgencia
 const getUrgencyStyles = (task: TaskType): string => {
-  if (task.status === "completada")
-    return "bg-slate-100 dark:bg-slate-800/50 opacity-70 border-slate-500/30";
-  if (task.status === "pausada") return "bg-sky-500/10 border-sky-500/40";
-  if (!task.dueDate) return "bg-card";
+  // 1. Manejar estados finales (inactivos)
+  if (task.status === "completada" || task.status === "cancelada") {
+    return "bg-slate-100 dark:bg-slate-800/30 opacity-70 border-l-4 border-transparent";
+  }
+
+  // 2. Manejar estados informativos
+  if (task.status === "pausada") {
+    return "bg-sky-500/5 dark:bg-sky-500/10 border-l-4 border-l-sky-500";
+  }
+
+  // Si no hay fecha de vencimiento, es neutral
+  if (!task.dueDate) {
+    return "bg-card border-l-4 border-transparent";
+  }
+
   const date = new Date(task.dueDate);
-  if (isPast(date) && !isToday(date))
-    return "bg-destructive/10 border-destructive/50";
-  if (isToday(date)) return "bg-orange-500/10 border-orange-500/50";
-  if (isTomorrow(date)) return "bg-yellow-500/10 border-yellow-500/50";
-  return "bg-green-100";
+
+  // 3. Sistema de "Semáforo" para la urgencia
+  if (isPast(date) && !isToday(date)) {
+    return "bg-red-500/5 dark:bg-red-500/10 border-l-4 border-l-red-500"; // Vencida
+  }
+  if (isToday(date)) {
+    return "bg-orange-500/5 dark:bg-orange-500/10 border-l-4 border-l-orange-500"; // Vence Hoy
+  }
+  if (isTomorrow(date)) {
+    return "bg-yellow-500/5 dark:bg-yellow-500/10 border-l-4 border-l-yellow-500"; // Vence Mañana
+  }
+
+  // 4. El nuevo estado para tareas "a tiempo"
+  return "bg-green-500/5 dark:bg-green-500/10 border-l-4 border-l-green-500"; // A Tiempo
 };
 
 // La función de contexto de tiempo que te gustó
 const getTimeContext = (task: TaskType): string => {
+  const formatOptions = { locale: es };
   if (task.status === "completada" && task.completedAt) {
-    return `Completada ${formatDistanceToNow(new Date(task.completedAt), {
-      locale: es,
-      addSuffix: true,
-    })}`;
+    return `Completada: ${format(
+      new Date(task.completedAt),
+      "dd MMM, yy",
+      formatOptions
+    )}`;
   }
   if (task.status === "en progreso" && task.startedAt) {
-    return `Iniciada hace ${formatDistanceToNow(new Date(task.startedAt), {
-      locale: es,
-    })}`;
+    return `Iniciada: ${format(
+      new Date(task.startedAt),
+      "dd MMM, yy",
+      formatOptions
+    )}`;
   }
-  return `Creada hace ${formatDistanceToNow(new Date(task.createdAt), {
-    locale: es,
-  })}`;
+  return `Creada: ${format(
+    new Date(task.createdAt),
+    "dd MMM, yy",
+    formatOptions
+  )}`;
 };
 
 export function KanbanCard({ task, isDragging }: KanbanCardProps) {
@@ -77,6 +103,10 @@ export function KanbanCard({ task, isDragging }: KanbanCardProps) {
     id: task._id,
     data: { task }, // Pasamos la tarea para usarla en el 'overlay'
   });
+
+  const hasDailyLogToday = task.dailyLogs?.some((log) =>
+    isToday(new Date(log.createdAt))
+  );
 
   const style = transform
     ? {
@@ -148,6 +178,14 @@ export function KanbanCard({ task, isDragging }: KanbanCardProps) {
                   className="flex items-center gap-1"
                 >
                   <AlertTriangle className="h-3 w-3" /> Vencida
+                </Badge>
+              )}
+              {hasDailyLogToday && (
+                <Badge
+                  variant="default"
+                  className="bg-blue-600/80 flex items-center gap-1"
+                >
+                  <Check className="h-3 w-3" /> Revalidada Hoy
                 </Badge>
               )}
               {task.status === "completada" && (

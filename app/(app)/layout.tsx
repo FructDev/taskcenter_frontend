@@ -32,7 +32,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* El 'main' ahora solo se encarga del scroll */}
         <main className="flex-1 overflow-y-auto">
           {/* Este 'div' interno controla el ancho y el centrado del contenido */}
-          <div className="max-w-7xl mx-auto p-6 md:p-8">{children}</div>
+          <div className="p-6 md:p-8 h-full">{children}</div>
         </main>
       </div>
     </div>

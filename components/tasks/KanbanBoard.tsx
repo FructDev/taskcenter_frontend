@@ -155,19 +155,21 @@ export function KanbanBoard({ filters }: KanbanBoardProps) {
 
   // --- VISTA PARA MÓVIL (NUEVA INTERFAZ DE PESTAÑAS) ---
   return (
-    <Tabs defaultValue="pendiente" className="w-full">
+    <Tabs defaultValue={TaskStatus.PENDIENTE} className="w-full">
+      {/* 1. Envolvemos la lista en un div que permite scroll horizontal */}
       <div className="w-full overflow-x-auto pb-2">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="pendiente">
+        {/* 2. Le damos a la lista un ancho basado en su contenido y un espacio */}
+        <TabsList className="grid w-max grid-cols-4 gap-2">
+          <TabsTrigger value={TaskStatus.PENDIENTE}>
             Pendiente ({columns.pendiente.length})
           </TabsTrigger>
-          <TabsTrigger value="en progreso">
+          <TabsTrigger value={TaskStatus.EN_PROGRESO}>
             En Progreso ({columns["en progreso"].length})
           </TabsTrigger>
-          <TabsTrigger value="pausada">
+          <TabsTrigger value={TaskStatus.PAUSADA}>
             Pausada ({columns.pausada.length})
           </TabsTrigger>
-          <TabsTrigger value="completada">
+          <TabsTrigger value={TaskStatus.COMPLETADA}>
             Completada ({columns.completada.length})
           </TabsTrigger>
         </TabsList>
