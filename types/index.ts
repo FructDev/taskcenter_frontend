@@ -97,6 +97,7 @@ export interface TaskType {
   }[];
   dailyLogs: DailyLogType[];
   requiredPpe?: PpeItemType[];
+  isArchived?: boolean;
 }
 
 export enum TaskStatus {

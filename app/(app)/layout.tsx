@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/auth.store";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { PushNotificationProvider } from "@/components/notifications/PushNotificationProvider";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, _hasHydrated } = useAuthStore();
@@ -32,7 +33,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* El 'main' ahora solo se encarga del scroll */}
         <main className="flex-1 overflow-y-auto">
           {/* Este 'div' interno controla el ancho y el centrado del contenido */}
-          <div className="p-6 md:p-8 h-full">{children}</div>
+          <PushNotificationProvider>
+            <div className="p-6 md:p-8 h-full">{children}</div>
+          </PushNotificationProvider>
         </main>
       </div>
     </div>

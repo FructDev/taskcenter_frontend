@@ -6,14 +6,28 @@ import { Badge } from "@/components/ui/badge";
 
 import { format } from "date-fns";
 import { TaskActions } from "./TaskActions";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export const columns: ColumnDef<TaskType>[] = [
   {
     accessorKey: "title",
     header: "Título",
-    cell: ({ row }) => (
-      <div className="font-medium">{row.getValue("title")}</div>
-    ),
+    cell: ({ row }) => {
+      const task = row.original;
+      return (
+        <Link
+          href={`/tasks/${task._id}`}
+          className={cn(
+            "font-medium text-primary hover:underline",
+            // Si la tarea está archivada, la tacha y le da un estilo atenuado
+            task.isArchived && "text-muted-foreground line-through italic"
+          )}
+        >
+          {task.title}
+        </Link>
+      );
+    },
   },
   {
     accessorKey: "status",
