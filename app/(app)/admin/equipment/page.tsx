@@ -4,7 +4,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { ColumnDef } from "@tanstack/react-table";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Shapes } from "lucide-react";
 
 import { EquipmentType } from "@/types";
 import api from "@/lib/api";
@@ -113,10 +113,18 @@ export default function ManageEquipmentPage() {
           title="Gestión de Activos y Equipos"
           description="Crea y gestiona el inventario de equipos físicos del parque."
           actionButton={
-            <Button onClick={handleAddNew}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Añadir Equipo
-            </Button>
+            <div className="flex gap-2">
+              <Button asChild variant="outline">
+                <Link href="/admin/equipment/bulk">
+                  <Shapes className="mr-2 h-4 w-4" />
+                  Creación en Lote
+                </Link>
+              </Button>
+              <Button onClick={handleAddNew}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Añadir Equipo
+              </Button>
+            </div>
           }
         />
         <GenericDataTable

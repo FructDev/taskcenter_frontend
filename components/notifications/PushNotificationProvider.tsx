@@ -26,10 +26,13 @@ export function PushNotificationProvider({
         if (permission === "granted") {
           console.log("Permiso de notificación concedido.");
 
+          const registration = await navigator.serviceWorker.ready;
+
           // Obtenemos el token del dispositivo
           const currentToken = await getToken(messaging, {
             vapidKey:
               "BBerS5LNLWEPoPJ3D_FBU8WAxgccOTNLOQqwzs-gDSUTLnRX91sgyHyEtDKIYp8diBEkNboZeqBJFLlOhULG7NI	", // <-- PEGA TU VAPID KEY AQUÍ
+            serviceWorkerRegistration: registration,
           });
 
           if (currentToken) {
