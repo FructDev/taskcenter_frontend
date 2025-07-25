@@ -1,32 +1,29 @@
 // public/firebase-messaging-sw.js
 
-// Importamos los scripts de Firebase necesarios para el service worker
-importScripts(
-  "https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"
-);
-importScripts(
-  "https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js"
-);
+// Usamos la sintaxis de import moderna
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getMessaging,
+  onBackgroundMessage,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-sw.js";
 
 // --- PEGA TU OBJETO firebaseConfig COMPLETO AQUÍ ---
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_AUTH_DOMAIN",
-  projectId: "TU_PROJECT_ID",
-  storageBucket: "girasol-task-manager.appspot.com", // <-- Usa el formato corregido
-  messagingSenderId: "TU_MESSAGING_SENDER_ID",
-  appId: "TU_APP_ID",
+  apiKey: "AIzaSyDk9sscnTBrYcuqkayiUzzyHOYaZ2cIAqA",
+  authDomain: "girasol-task-manager.firebaseapp.com",
+  projectId: "girasol-task-manager",
+  storageBucket: "girasol-task-manager.appspot.com",
+  messagingSenderId: "853830025431",
+  appId: "1:853830025431:web:367ae8aebca18ab28e7092",
 };
 // ----------------------------------------------------
 
-firebase.initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
+const messaging = getMessaging(app);
 
-const messaging = firebase.messaging();
-
-// Este código se ejecuta cuando llega una notificación y la app no está en primer plano
-messaging.onBackgroundMessage((payload) => {
+onBackgroundMessage(messaging, (payload) => {
   console.log(
-    "[firebase-messaging-sw.js] Received background message ",
+    "[firebase-messaging-sw.js] Mensaje recibido en segundo plano.",
     payload
   );
 
