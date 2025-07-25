@@ -3,7 +3,7 @@ import { initializeApp, getApps } from "firebase/app";
 import { getMessaging } from "firebase/messaging";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAO7n6JtsldpfDE5LwgxOONWl-O4e0JZSk",
+  apiKey: "AIzaSyDk9sscnTBrYcuqkayiUzzyHOYaZ2cIAqA",
   authDomain: "girasol-task-manager.firebaseapp.com",
   projectId: "girasol-task-manager",
   storageBucket: "girasol-task-manager.firebasestorage.app",
