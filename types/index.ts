@@ -98,6 +98,7 @@ export interface TaskType {
   dailyLogs: DailyLogType[];
   requiredPpe?: PpeItemType[];
   isArchived?: boolean;
+  failureReport?: FailureReportType;
 }
 
 export enum TaskStatus {
@@ -265,7 +266,7 @@ export interface ReportDashboardType {
   kpis: KpiData;
   tasksByStatus: { status: string; count: number }[];
   tasksByCriticality: { criticality: CriticalityLevel; count: number }[];
-  tasksByType: { taskType: string; count: number }[];
+  tasksByType: { taskType: TaskTypeEnum; count: number }[];
   topTechnicians: { userId: string; userName: string; count: number }[];
   topFailingEquipment: {
     equipmentId: string;
@@ -277,4 +278,18 @@ export interface ReportDashboardType {
     created: number;
     completed: number;
   }[];
+}
+
+export enum FailureModeEnum {
+  ELECTRICAL = "falla_electrica",
+  MECHANICAL = "falla_mecanica",
+  COMMUNICATION = "falla_comunicacion",
+  OVERHEATING = "sobrecalentamiento",
+  PHYSICAL_DAMAGE = "dano_fisico",
+  OTHER = "otro",
+}
+export interface FailureReportType {
+  failureMode: FailureModeEnum;
+  diagnosis: string;
+  correctiveAction: string;
 }

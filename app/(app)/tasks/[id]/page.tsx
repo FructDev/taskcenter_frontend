@@ -24,6 +24,7 @@ import {
   MapPin,
   Pause,
   PlayCircle,
+  ShieldAlert,
   User,
   XCircle,
 } from "lucide-react";
@@ -51,6 +52,8 @@ import { TaskPpeRequirements } from "@/components/tasks/TaskPpeRequirements";
 // import { TaskStatus } from "@/types";
 import api from "@/lib/api";
 import { getErrorMessage } from "@/lib/handle-error";
+import { FailureReportType, TaskTypeEnum } from "@/types";
+import { FailureReportDialog } from "@/components/tasks/FailureReportDialog";
 
 export default function TaskDetailPage() {
   const params = useParams();
@@ -61,6 +64,7 @@ export default function TaskDetailPage() {
     null
   );
   const [isPpeCheckOpen, setIsPpeCheckOpen] = useState(false);
+  const [isFailureReportOpen, setIsFailureReportOpen] = useState(false);
 
   const startTaskApiCall = async () => {
     try {
@@ -82,13 +86,23 @@ export default function TaskDetailPage() {
     }
   };
 
-  const handleComplete = async () => {
+  const handleComplete = async (failureData?: FailureReportType) => {
+    if (!task) return;
+    // Si la tarea es correctiva y no nos han pasado datos de falla, abrimos el modal
+    if (task.taskType === TaskTypeEnum.CORRECTIVO && !failureData) {
+      setIsFailureReportOpen(true);
+      return;
+    }
+
     try {
-      await api.post(`/tasks/${id}/complete`);
-      toast.success("Tarea marcada como 'completada'");
+      // Pasamos los datos de falla en el cuerpo de la petición
+      await api.post(`/tasks/${id}/complete`, { failureReport: failureData });
+      toast.success("Tarea completada con éxito.");
       mutate();
     } catch (error) {
-      toast.error("Acción fallida", { description: getErrorMessage(error) });
+      toast.error("Error al completar la tarea", {
+        description: getErrorMessage(error),
+      });
     }
   };
 
@@ -148,9 +162,7 @@ export default function TaskDetailPage() {
             </Button>
           )}
           {task.status === "en progreso" && (
-            <Button onClick={handleComplete}>
-              <CheckCircle className="mr-2 h-4 w-4" /> Completar
-            </Button>
+            <Button onClick={() => handleComplete()}>Completar</Button>
           )}
           {/* Botón para Pausar */}
           {task.status === "en progreso" && (
@@ -255,6 +267,42 @@ export default function TaskDetailPage() {
               </Card>
             </TabsContent>
           </Tabs>
+          {/* --- INICIO DEL BLOQUE A AÑADIR --- */}
+          {/* Esta tarjeta solo se muestra si es un M. Correctivo y ya tiene un reporte */}
+          {task.taskType === TaskTypeEnum.CORRECTIVO && task.failureReport && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShieldAlert className="h-5 w-5 text-destructive" />
+                  Reporte de Falla y Resolución
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <InfoRow icon={ShieldAlert} label="Modo de Falla">
+                  <Badge variant="outline" className="capitalize">
+                    {task.failureReport.failureMode.replace(/_/g, " ")}
+                  </Badge>
+                </InfoRow>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">
+                    Diagnóstico / Condición Encontrada
+                  </p>
+                  <p className="text-sm text-muted-foreground p-2 border rounded-md">
+                    {task.failureReport.diagnosis}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">
+                    Acción Correctiva Aplicada
+                  </p>
+                  <p className="text-sm text-muted-foreground p-2 border rounded-md">
+                    {task.failureReport.correctiveAction}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {/* --- FIN DEL BLOQUE A AÑADIR --- */}
         </div>
 
         {/* COLUMNA DE METADATOS - Ocupa 1 de 3 columnas en pantallas grandes */}
@@ -333,6 +381,11 @@ export default function TaskDetailPage() {
         onOpenChange={setIsPpeCheckOpen}
         requiredPpe={task.requiredPpe || []}
         onConfirm={startTaskApiCall} // Al confirmar, se llama a la API
+      />
+      <FailureReportDialog
+        isOpen={isFailureReportOpen}
+        onOpenChange={setIsFailureReportOpen}
+        onConfirm={handleComplete}
       />
     </div>
   );

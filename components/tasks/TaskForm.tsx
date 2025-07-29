@@ -52,9 +52,10 @@ import { useTasks } from "@/hooks/use-tasks";
 import { toast } from "sonner";
 import { useTask } from "@/hooks/use-task";
 import { useTaskTemplates } from "@/hooks/use-task-templates";
-import { useEquipment } from "@/hooks/use-equipment";
+// import { useEquipment } from "@/hooks/use-equipment";
 import { usePpeItems } from "@/hooks/use-ppe-items";
 import { Checkbox } from "../ui/checkbox";
+import { EquipmentCombobox } from "../equipment/EquipmentCombobox";
 
 const formSchema = z.object({
   title: z.string().min(5, { message: "El título es muy corto." }),
@@ -91,7 +92,7 @@ export function TaskForm({ taskToEdit, onSuccess }: TaskFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { templates } = useTaskTemplates();
-  const { equipment } = useEquipment();
+  // const { equipment } = useEquipment();
 
   const { users } = useUsers();
   const { contractors } = useContractors();
@@ -299,23 +300,12 @@ export function TaskForm({ taskToEdit, onSuccess }: TaskFormProps) {
           control={form.control}
           name="equipment"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Equipo Afectado (Opcional)</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value ?? ""}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona un equipo específico..." />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="none">-- Ninguno --</SelectItem>
-                  {equipment?.map((eq) => (
-                    <SelectItem key={eq._id} value={eq._id}>
-                      {eq.name} ({eq.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <FormItem className="flex flex-col">
+              <FormLabel>Equipo (Opcional)</FormLabel>
+              <EquipmentCombobox
+                value={field.value}
+                onChange={field.onChange}
+              />
               <FormMessage />
             </FormItem>
           )}

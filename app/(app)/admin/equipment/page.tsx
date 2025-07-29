@@ -6,10 +6,10 @@ import { toast } from "sonner";
 import { ColumnDef } from "@tanstack/react-table";
 import { PlusCircle, Shapes } from "lucide-react";
 
-import { EquipmentType } from "@/types";
+import { EquipmentType, EquipmentTypeEnum } from "@/types";
 import api from "@/lib/api";
 import { getErrorMessage } from "@/lib/handle-error";
-import { useEquipment } from "@/hooks/use-equipment";
+// import { useEquipment } from "@/hooks/use-equipment";
 
 import { PageHeader } from "@/components/common/page-header";
 import { GenericDataTable } from "@/components/common/GenericDataTable";
@@ -33,9 +33,41 @@ import {
 } from "@/components/ui/alert-dialog";
 import { EquipmentForm } from "@/components/equipment/EquipmentForm";
 import Link from "next/link";
+import { Input } from "@/components/ui/input";
+import { useDebounce } from "use-debounce";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { usePaginatedEquipment } from "@/hooks/use-paginated-equipment";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function ManageEquipmentPage() {
-  const { equipment, isLoading, mutate } = useEquipment();
+  // const { equipment, isLoading, mutate } = useEquipment();
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm] = useDebounce(searchTerm, 500);
+  const [typeFilter, setTypeFilter] = useState("");
+
+  const { equipment, total, isLoading, mutate } = usePaginatedEquipment({
+    page,
+    limit,
+    search: debouncedSearchTerm,
+    type: typeFilter,
+  });
+
+  const pageCount = Math.ceil(total / limit);
 
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
@@ -127,6 +159,30 @@ export default function ManageEquipmentPage() {
             </div>
           }
         />
+
+        {/* --- BARRA DE BÚSQUEDA --- */}
+        <div className="flex items-center">
+          <Input
+            placeholder="Buscar por nombre o código..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="max-w-sm mr-1"
+          />
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filtrar por tipo..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL_TYPES">Todos los tipos</SelectItem>
+              {Object.values(EquipmentTypeEnum).map((t) => (
+                <SelectItem key={t} value={t} className="capitalize">
+                  {t.replace(/_/g, " ")}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         <GenericDataTable
           columns={columns}
           data={equipment || []}
@@ -135,6 +191,44 @@ export default function ManageEquipmentPage() {
           onDelete={handleDeleteAttempt} // <-- Y ESTA
         />
       </div>
+
+      {/* --- CONTROLES DE PAGINACIÓN --- */}
+      <Pagination>
+        <PaginationContent>
+          <PaginationItem>
+            <PaginationPrevious
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                setPage((p) => Math.max(1, p - 1));
+              }}
+            />
+          </PaginationItem>
+          {[...Array(pageCount)].map((_, i) => (
+            <PaginationItem key={i}>
+              <PaginationLink
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setPage(i + 1);
+                }}
+                isActive={page === i + 1}
+              >
+                {i + 1}
+              </PaginationLink>
+            </PaginationItem>
+          ))}
+          <PaginationItem>
+            <PaginationNext
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                setPage((p) => Math.min(pageCount, p + 1));
+              }}
+            />
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
 
       <Dialog open={isFormModalOpen} onOpenChange={setIsFormModalOpen}>
         <DialogContent>
