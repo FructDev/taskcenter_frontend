@@ -7,6 +7,8 @@ import { fetcher } from "@/lib/fetcher";
 interface TaskFilters {
   search?: string;
   status?: TaskStatus | TaskStatus[]; // Puede ser un solo estado o un array de estados
+  startDate?: string; // <-- Añadido
+  endDate?: string;
   refreshInterval?: number;
 }
 
@@ -17,6 +19,9 @@ export function useTasks(filters?: TaskFilters) {
   if (filters?.search) {
     queryParams.append("search", filters.search);
   }
+
+  if (filters?.startDate) queryParams.append("startDate", filters.startDate);
+  if (filters?.endDate) queryParams.append("endDate", filters.endDate);
 
   // --- LÓGICA CORREGIDA Y PROFESIONAL ---
   if (filters?.status) {

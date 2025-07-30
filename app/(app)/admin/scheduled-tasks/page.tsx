@@ -145,17 +145,19 @@ export default function ManageScheduledTasksPage() {
       </div>
 
       <Dialog open={isFormModalOpen} onOpenChange={setIsFormModalOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{modalTitle}</DialogTitle>
           </DialogHeader>
-          <ScheduledTaskForm
-            scheduledTaskToEdit={selectedItem}
-            onSuccess={() => {
-              setIsFormModalOpen(false);
-              mutate();
-            }}
-          />
+          <div className="max-h-[75vh] overflow-y-auto p-1 pr-6">
+            <ScheduledTaskForm
+              scheduledTaskToEdit={selectedItem}
+              onSuccess={() => {
+                setIsFormModalOpen(false);
+                mutate();
+              }}
+            />
+          </div>
         </DialogContent>
       </Dialog>
 

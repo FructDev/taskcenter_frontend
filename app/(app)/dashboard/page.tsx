@@ -24,12 +24,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTaskSummary } from "@/hooks/use-task-summary";
 import { useTaskFilters } from "@/hooks/use-task-filters";
 import { Input } from "@/components/ui/input";
+import { useState } from "react";
 // import { Input } from "@/components/ui/input";
 
 export default function DashboardPage() {
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const { summary, isLoading: isLoadingSummary } = useTaskSummary();
   const { searchTerm, setSearchTerm, debouncedSearchTerm } = useTaskFilters();
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const CreateTaskButton = () => (
     <Button asChild className="w-full md:w-auto">
@@ -41,7 +43,7 @@ export default function DashboardPage() {
   );
 
   const CreateTaskDialog = () => (
-    <Dialog>
+    <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
       <DialogTrigger asChild>
         <Button>
           <PlusCircle className="h-4 w-4 mr-2" />
@@ -56,7 +58,7 @@ export default function DashboardPage() {
           </DialogDescription>
         </DialogHeader>
         <div className="max-h-[70vh] overflow-y-auto p-1 pr-6">
-          <TaskForm />
+          <TaskForm onSuccess={() => setIsCreateModalOpen(false)} />
         </div>
       </DialogContent>
     </Dialog>

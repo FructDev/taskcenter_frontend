@@ -56,6 +56,7 @@ import { useTaskTemplates } from "@/hooks/use-task-templates";
 import { usePpeItems } from "@/hooks/use-ppe-items";
 import { Checkbox } from "../ui/checkbox";
 import { EquipmentCombobox } from "../equipment/EquipmentCombobox";
+import { useSearchParams } from "next/navigation";
 
 const formSchema = z.object({
   title: z.string().min(5, { message: "El título es muy corto." }),
@@ -83,16 +84,21 @@ const formSchema = z.object({
 interface TaskFormProps {
   taskToEdit?: TaskType;
   onSuccess?: () => void;
+  defaultDate?: string;
 }
 
-export function TaskForm({ taskToEdit, onSuccess }: TaskFormProps) {
+export function TaskForm({
+  taskToEdit,
+  onSuccess,
+  defaultDate,
+}: TaskFormProps) {
   // const router = useRouter();
   const { mutate: mutateTasks } = useTasks();
   const { mutate: mutateSingleTask } = useTask(taskToEdit?._id);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { templates } = useTaskTemplates();
-  // const { equipment } = useEquipment();
+  const searchParams = useSearchParams();
 
   const { users } = useUsers();
   const { contractors } = useContractors();
@@ -110,7 +116,7 @@ export function TaskForm({ taskToEdit, onSuccess }: TaskFormProps) {
           description: taskToEdit.description,
           taskType: taskToEdit.taskType,
           criticality: taskToEdit.criticality,
-          dueDate: new Date(taskToEdit.dueDate),
+          dueDate: defaultDate ? new Date(defaultDate) : new Date(),
           location: taskToEdit.location._id,
           equipment: taskToEdit.equipment?._id || undefined,
           assignedTo: taskToEdit.assignedTo?._id,
@@ -119,6 +125,9 @@ export function TaskForm({ taskToEdit, onSuccess }: TaskFormProps) {
           requiredPpe: taskToEdit.requiredPpe?.map((item) => item._id) || [],
         }
       : {
+          dueDate: searchParams.get("dueDate")
+            ? new Date(searchParams.get("dueDate")!)
+            : undefined,
           title: "",
           description: "",
           criticality: "baja",

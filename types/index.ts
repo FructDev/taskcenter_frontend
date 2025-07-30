@@ -199,7 +199,7 @@ export interface ScheduledTaskType {
   name: string;
   taskTemplate: TaskTemplateType; // Viene populada desde el backend
   schedule: string;
-  targetEquipmentType: string;
+  targetEquipmentType: EquipmentTypeEnum;
   isEnabled: boolean;
   lastRunAt?: string;
 }

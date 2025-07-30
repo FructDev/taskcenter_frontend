@@ -20,6 +20,8 @@ import {
   HardHat,
   ShieldCheck,
   Users2,
+  Search,
+  Calendar,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +36,18 @@ export function DashboardNav() {
   const mainNavItems = [
     { href: dashboardHref, label: "Dashboard", icon: Home },
     { href: "/tasks", label: "Tareas", icon: ClipboardList },
+    {
+      href: "/calendar",
+      label: "Calendario",
+      icon: Calendar,
+      roles: ["admin", "supervisor", "planificador"],
+    },
+    {
+      href: "/field-lookup",
+      label: "Buscar Equipo",
+      icon: Search,
+      roles: ["tecnico"],
+    },
     { href: "/activity", label: "Bitácora", icon: History },
     { href: "/reports", label: "Informes", icon: BarChart4 },
     { href: "/workload", label: "Carga de Equipo", icon: Users2 },
