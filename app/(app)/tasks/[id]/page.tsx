@@ -4,7 +4,13 @@
 import { useParams } from "next/navigation";
 import { useTask } from "@/hooks/use-task";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 // import api from "@/lib/api";
@@ -24,6 +30,7 @@ import {
   MapPin,
   Pause,
   PlayCircle,
+  PlusCircle,
   ShieldAlert,
   User,
   XCircle,
@@ -54,8 +61,14 @@ import api from "@/lib/api";
 import { getErrorMessage } from "@/lib/handle-error";
 import { FailureReportType, TaskTypeEnum } from "@/types";
 import { FailureReportDialog } from "@/components/tasks/FailureReportDialog";
+import { useAuth } from "@/hooks/use-auth";
+import router from "next/router";
+import { LogFindingForm } from "@/components/tasks/LogFindingForm";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function TaskDetailPage() {
+  const { user } = useAuth();
+
   const params = useParams();
   const id = params.id as string;
   const { task, isLoading, isError: error, mutate } = useTask(id);
@@ -65,6 +78,8 @@ export default function TaskDetailPage() {
   );
   const [isPpeCheckOpen, setIsPpeCheckOpen] = useState(false);
   const [isFailureReportOpen, setIsFailureReportOpen] = useState(false);
+  const [isFindingModalOpen, setIsFindingModalOpen] = useState(false);
+  const [selectedFindings, setSelectedFindings] = useState<string[]>([]);
 
   const startTaskApiCall = async () => {
     try {
@@ -106,6 +121,46 @@ export default function TaskDetailPage() {
     }
   };
 
+  const handleLogFinding = async (values: {
+    equipmentId: string;
+    description: string;
+  }) => {
+    try {
+      await api.post(`/tasks/${id}/findings`, values);
+      toast.success("Hallazgo registrado con éxito.");
+      mutate();
+      setIsFindingModalOpen(false);
+    } catch (error) {
+      toast.error("Error al registrar el hallazgo", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
+  const handleConsolidate = async () => {
+    if (selectedFindings.length === 0) {
+      toast.warning("Debes seleccionar al menos un hallazgo para consolidar.");
+      return;
+    }
+    try {
+      const response = await api.post(`/tasks/${id}/consolidate-findings`, {
+        findingIds: selectedFindings,
+      });
+      toast.success("Tarea correctiva consolidada creada.", {
+        action: {
+          label: "Ver Tarea",
+          onClick: () => router.push(`/tasks/${response.data._id}`),
+        },
+      });
+      setSelectedFindings([]);
+      mutate();
+    } catch (error) {
+      toast.error("Error al crear la tarea consolidada", {
+        description: getErrorMessage(error),
+      });
+    }
+  };
+
   if (isLoading) return <TaskDetailSkeleton />;
   if (error)
     return <div className="p-6 text-destructive">Error: {error.message}</div>;
@@ -142,6 +197,15 @@ export default function TaskDetailPage() {
       toast.error("Acción fallida", { description: getErrorMessage(error) });
     }
   };
+
+  const isPlannerOrSupervisor =
+    user?.role === "planificador" ||
+    user?.role === "supervisor" ||
+    user?.role === "admin";
+  const newFindings = task.findings?.filter((f) => f.status === "nuevo");
+  // const processedFindings = task.findings?.filter(
+  //   (f) => f.status === "procesado"
+  // );
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-6xl mx-auto">
@@ -238,6 +302,79 @@ export default function TaskDetailPage() {
               <TaskAttachments task={task} />
             </CardContent>
           </Card>
+          {task.taskType === TaskTypeEnum.INSPECCION && (
+            <Card>
+              <CardHeader className="flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Hallazgos de Inspección</CardTitle>
+                  <CardDescription>
+                    Problemas encontrados durante esta inspección.
+                  </CardDescription>
+                </div>
+                <Button size="sm" onClick={() => setIsFindingModalOpen(true)}>
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Registrar Hallazgo
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {!newFindings || newFindings.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No hay nuevos hallazgos pendientes.
+                  </p>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="font-semibold text-sm">
+                        Hallazgos Pendientes de Procesar:
+                      </p>
+                      {isPlannerOrSupervisor && (
+                        <Button
+                          size="sm"
+                          onClick={handleConsolidate}
+                          disabled={selectedFindings.length === 0}
+                        >
+                          Crear Tarea con {selectedFindings.length}{" "}
+                          Seleccionados
+                        </Button>
+                      )}
+                    </div>
+                    <div className="border rounded-md p-2 space-y-2">
+                      {newFindings.map((finding) => (
+                        <div
+                          key={finding._id}
+                          className="flex items-center gap-3 text-sm p-1"
+                        >
+                          {isPlannerOrSupervisor && (
+                            <Checkbox
+                              id={`finding-${finding._id}`}
+                              onCheckedChange={(checked) => {
+                                setSelectedFindings((prev) =>
+                                  checked
+                                    ? [...prev, finding._id]
+                                    : prev.filter((id) => id !== finding._id)
+                                );
+                              }}
+                            />
+                          )}
+                          <label
+                            htmlFor={`finding-${finding._id}`}
+                            className="flex-1"
+                          >
+                            <span className="font-semibold">
+                              {finding.equipment.name}:
+                            </span>
+                            <span className="text-muted-foreground ml-2">
+                              {finding.description}
+                            </span>
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
           <DailyLogSection task={task} />
           <Tabs defaultValue="comments">
             <TabsList className="grid w-full grid-cols-2">
@@ -387,6 +524,14 @@ export default function TaskDetailPage() {
         onOpenChange={setIsFailureReportOpen}
         onConfirm={handleComplete}
       />
+      <Dialog open={isFindingModalOpen} onOpenChange={setIsFindingModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar Nuevo Hallazgo</DialogTitle>
+          </DialogHeader>
+          <LogFindingForm onSubmit={handleLogFinding} />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

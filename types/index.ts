@@ -99,6 +99,7 @@ export interface TaskType {
   requiredPpe?: PpeItemType[];
   isArchived?: boolean;
   failureReport?: FailureReportType;
+  findings?: FindingType[];
 }
 
 export enum TaskStatus {
@@ -288,8 +289,17 @@ export enum FailureModeEnum {
   PHYSICAL_DAMAGE = "dano_fisico",
   OTHER = "otro",
 }
+
 export interface FailureReportType {
   failureMode: FailureModeEnum;
   diagnosis: string;
   correctiveAction: string;
+}
+
+export interface FindingType {
+  _id: string;
+  equipment: EquipmentType;
+  description: string;
+  status: "nuevo" | "procesado";
+  createdAt: string;
 }
