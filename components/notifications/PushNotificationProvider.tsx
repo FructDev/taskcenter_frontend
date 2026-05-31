@@ -28,10 +28,12 @@ export function PushNotificationProvider({
 
           const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
 
+          // Esperamos a que el SW existente esté listo antes de pedir el token
           const registration = await navigator.serviceWorker.register(
-            "/firebase-messaging-sw.js",
-            { scope: "/" }
+            "/firebase-messaging-sw.js"
           );
+          await navigator.serviceWorker.ready;
+
           const currentToken = await getToken(messaging, {
             vapidKey,
             serviceWorkerRegistration: registration,

@@ -1,13 +1,8 @@
-// public/firebase-messaging-sw.js
+// firebase-messaging-sw.js
+// Usa importScripts (compatible con todos los navegadores/móviles)
+importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js");
+importScripts("https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js");
 
-// Usamos la sintaxis de import moderna
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getMessaging,
-  onBackgroundMessage,
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-sw.js";
-
-// --- PEGA TU OBJETO firebaseConfig COMPLETO AQUÍ ---
 const firebaseConfig = {
   apiKey: "AIzaSyDk9sscnTBrYcuqkayiUzzyHOYaZ2cIAqA",
   authDomain: "girasol-task-manager.firebaseapp.com",
@@ -16,22 +11,27 @@ const firebaseConfig = {
   messagingSenderId: "853830025431",
   appId: "1:853830025431:web:367ae8aebca18ab28e7092",
 };
-// ----------------------------------------------------
 
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+firebase.initializeApp(firebaseConfig);
+const messaging = firebase.messaging();
 
-onBackgroundMessage(messaging, (payload) => {
-  console.log(
-    "[firebase-messaging-sw.js] Mensaje recibido en segundo plano.",
-    payload
-  );
+messaging.onBackgroundMessage(function (payload) {
+  console.log("[SW] Mensaje en segundo plano:", payload);
 
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
+  const title = payload.notification?.title ?? "Nueva notificación";
+  const options = {
+    body: payload.notification?.body ?? "",
     icon: "/icons/icon-192x192.png",
+    badge: "/icons/icon-72x72.png",
+    data: payload.data,
   };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  self.registration.showNotification(title, options);
+});
+
+self.addEventListener("notificationclick", function (event) {
+  event.notification.close();
+  const taskId = event.notification?.data?.taskId;
+  const url = taskId ? "/tasks/" + taskId : "/my-tasks";
+  event.waitUntil(clients.openWindow(url));
 });
