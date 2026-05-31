@@ -18,10 +18,14 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    // Token expirado → cerrar sesión
+    // Solo cerrar sesión si el usuario TENÍA un token (sesión expirada).
+    // Si no hay token, el 401 es esperado (usuario no autenticado) — no redirigir.
     if (error.response?.status === 401) {
-      useAuthStore.getState().logout();
-      window.location.href = "/";
+      const token = useAuthStore.getState().token;
+      if (token) {
+        useAuthStore.getState().logout();
+        window.location.href = "/";
+      }
       return Promise.reject(error);
     }
 
