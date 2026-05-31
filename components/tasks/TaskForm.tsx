@@ -35,6 +35,7 @@ import { format } from "date-fns";
 import { useUsers } from "@/hooks/use-users";
 import { useContractors } from "@/hooks/use-contractors";
 import { useLocations } from "@/hooks/use-locations";
+import { LocationCombobox } from "@/components/locations/LocationCombobox";
 import api from "@/lib/api";
 // import { useRouter } from "next/navigation";
 import { getErrorMessage } from "@/lib/handle-error";
@@ -43,7 +44,6 @@ import { useState } from "react";
 import {
   UserType,
   ContractorType,
-  LocationType,
   TaskType,
   TaskTypeEnum,
   CriticalityLevel,
@@ -97,6 +97,7 @@ export function TaskForm({
   const { mutate: mutateSingleTask } = useTask(taskToEdit?._id);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
   const { templates } = useTaskTemplates();
   const searchParams = useSearchParams();
 
@@ -248,7 +249,7 @@ export function TaskForm({
             render={({ field }) => (
               <FormItem className="flex flex-col pt-2">
                 <FormLabel>Fecha de Vencimiento</FormLabel>
-                <Popover>
+                <Popover open={dateOpen} onOpenChange={setDateOpen}>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
@@ -271,7 +272,10 @@ export function TaskForm({
                     <Calendar
                       mode="single"
                       selected={field.value}
-                      onSelect={field.onChange}
+                      onSelect={(date) => {
+                        field.onChange(date);
+                        setDateOpen(false);
+                      }}
                       initialFocus
                     />
                   </PopoverContent>
@@ -286,20 +290,13 @@ export function TaskForm({
             render={({ field }) => (
               <FormItem className="pt-2">
                 <FormLabel>Ubicación</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona una ubicación..." />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {locations?.map((location: LocationType) => (
-                      <SelectItem key={location._id} value={location._id}>
-                        {location.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <LocationCombobox
+                    locations={locations}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

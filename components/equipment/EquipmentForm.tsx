@@ -9,6 +9,7 @@ import { EquipmentType, EquipmentTypeEnum } from "@/types";
 import { getErrorMessage } from "@/lib/handle-error";
 import api from "@/lib/api";
 import { useLocations } from "@/hooks/use-locations";
+import { LocationCombobox } from "@/components/locations/LocationCombobox";
 import {
   Form,
   FormControl,
@@ -56,6 +57,7 @@ export function EquipmentForm({
   const { locations } = useLocations();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
   const isEditMode = !!equipmentToEdit;
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -154,20 +156,13 @@ export function EquipmentForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Ubicación Física</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una ubicación..." />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {locations?.map((loc) => (
-                    <SelectItem key={loc._id} value={loc._id}>
-                      {loc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <LocationCombobox
+                  locations={locations}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -206,7 +201,7 @@ export function EquipmentForm({
           render={({ field }) => (
             <FormItem className="flex flex-col">
               <FormLabel>Fecha de Instalación (Opcional)</FormLabel>
-              <Popover>
+              <Popover open={dateOpen} onOpenChange={setDateOpen}>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
@@ -229,7 +224,10 @@ export function EquipmentForm({
                   <Calendar
                     mode="single"
                     selected={field.value}
-                    onSelect={field.onChange}
+                    onSelect={(date) => {
+                      field.onChange(date);
+                      setDateOpen(false);
+                    }}
                   />
                 </PopoverContent>
               </Popover>

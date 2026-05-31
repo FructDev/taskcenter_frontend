@@ -53,10 +53,10 @@ export interface LocationType {
   _id: string;
   name: string;
   code: string;
-  type: string; // Se mantiene como string para flexibilidad de la data que llega
-  parentLocation?: LocationType; // Puede venir populada
+  type: string;
+  parentLocation?: LocationType;
   description?: string;
-  coordinates?: { x: number; y: number };
+  coordinates?: { lat: number; lng: number };
 }
 
 export interface CommentType {
@@ -210,6 +210,7 @@ export interface DailyLogType {
   confirmedBy: UserType;
   notes: string;
   location: LocationType;
+  photoUrl?: string;
   createdAt: string;
 }
 
@@ -227,6 +228,8 @@ export enum ActionType {
   TASK_ASSIGNED = "TAREA_ASIGNADA",
   COMMENT_ADDED = "COMENTARIO_AÑADIDO",
   ATTACHMENT_ADDED = "ADJUNTO_AÑADIDO",
+  DAILY_LOG_ADDED = "PARTE_DIARIO_AÑADIDO",
+  FINDING_ADDED = "HALLAZGO_AÑADIDO",
   USER_CREATED = "USUARIO_CREADO",
   USER_UPDATED = "USUARIO_MODIFICADO",
   USER_DELETED = "USUARIO_ELIMINADO",
@@ -301,5 +304,14 @@ export interface FindingType {
   equipment: EquipmentType;
   description: string;
   status: "nuevo" | "procesado";
+  createdAt: string;
+}
+
+export interface NotificationType {
+  _id: string;
+  title: string;
+  body: string;
+  taskId?: string;
+  isRead: boolean;
   createdAt: string;
 }

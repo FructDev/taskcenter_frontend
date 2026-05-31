@@ -29,7 +29,14 @@ import {
   SelectValue,
 } from "../ui/select";
 import { useLocations } from "@/hooks/use-locations";
+import { LocationCombobox } from "./LocationCombobox";
 import { Textarea } from "../ui/textarea";
+import dynamic from "next/dynamic";
+
+const LocationCoordinatePicker = dynamic(
+  () => import("./LocationCoordinatePicker").then((m) => m.LocationCoordinatePicker),
+  { ssr: false, loading: () => <div className="h-52 w-full rounded-md border bg-muted animate-pulse" /> }
+);
 
 const formSchema = z.object({
   name: z.string().min(3, "El nombre es muy corto."),
@@ -67,6 +74,9 @@ export function LocationForm({ locationToEdit, onSuccess }: LocationFormProps) {
       type: locationToEdit?.type as LocationTypeEnum,
       parentLocation: locationToEdit?.parentLocation?._id || undefined,
       description: locationToEdit?.description || "",
+      coordinates: locationToEdit?.coordinates
+        ? { lat: locationToEdit.coordinates.lat, lng: locationToEdit.coordinates.lng }
+        : undefined,
     },
   });
 
@@ -148,26 +158,16 @@ export function LocationForm({ locationToEdit, onSuccess }: LocationFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Ubicación Padre (Opcional)</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value ?? ""}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona una ubicación padre..." />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="none">-- Ninguna --</SelectItem>
-                  {locations
-                    ?.filter((loc) => loc._id !== locationToEdit?._id)
-                    .map((loc) => (
-                      <SelectItem key={loc._id} value={loc._id}>
-                        {loc.name} ({loc.code})
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <LocationCombobox
+                  locations={locations}
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  includeNone
+                  excludeId={locationToEdit?._id}
+                  placeholder="Selecciona una ubicación padre..."
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -188,6 +188,19 @@ export function LocationForm({ locationToEdit, onSuccess }: LocationFormProps) {
             </FormItem>
           )}
         />
+        {/* Selector de coordenadas GPS */}
+        <div className="space-y-1.5">
+          <p className="text-sm font-medium">Coordenadas en el Mapa (Opcional)</p>
+          <p className="text-xs text-muted-foreground">
+            Haz clic en el mapa o arrastra el marcador para fijar la posición exacta en el parque.
+          </p>
+          <LocationCoordinatePicker
+            lat={form.watch("coordinates.lat")}
+            lng={form.watch("coordinates.lng")}
+            onChange={(coords) => form.setValue("coordinates", coords)}
+          />
+        </div>
+
         <FormError message={error} />
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading

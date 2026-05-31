@@ -6,20 +6,20 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-import { EquipmentTypeEnum } from "@/types";
+import { LocationTypeEnum } from "@/types";
 import { useLocations } from "@/hooks/use-locations";
-import { LocationCombobox } from "@/components/locations/LocationCombobox";
+import { LocationCombobox } from "./LocationCombobox";
 import api from "@/lib/api";
 import { getErrorMessage } from "@/lib/handle-error";
 
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -34,25 +34,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormError } from "../ui/form-error";
 
 const formSchema = z.object({
-  type: z.nativeEnum(EquipmentTypeEnum, {
-    required_error: "El tipo de equipo es requerido.",
+  type: z.nativeEnum(LocationTypeEnum, {
+    required_error: "El tipo de ubicación es requerido.",
   }),
-  parentLocationId: z.string({
-    required_error: "Debe seleccionar una ubicación padre.",
-  }),
+  parentLocationId: z.string().optional(),
   quantity: z.coerce
     .number()
     .int()
     .min(1, "Debe ser al menos 1")
-    .max(100, "No se pueden crear más de 100 a la vez."),
-  namePrefix: z.string().min(3, "El prefijo del nombre es muy corto."),
-  codePrefix: z.string().min(3, "El prefijo del código es muy corto."),
+    .max(200, "No se pueden crear más de 200 a la vez."),
+  namePrefix: z.string().min(2, "El prefijo del nombre es muy corto."),
+  codePrefix: z.string().min(2, "El prefijo del código es muy corto."),
   startNumber: z.coerce.number().int().min(1, "Debe empezar en 1 o más."),
 });
 
 type PreviewItem = { name: string; code: string };
 
-export function BulkEquipmentForm() {
+export function BulkLocationForm() {
   const router = useRouter();
   const { locations } = useLocations();
   const [error, setError] = useState<string | null>(null);
@@ -61,10 +59,7 @@ export function BulkEquipmentForm() {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      quantity: 1,
-      startNumber: 1,
-    },
+    defaultValues: { quantity: 1, startNumber: 1 },
   });
 
   const handlePreview = () => {
@@ -75,16 +70,15 @@ export function BulkEquipmentForm() {
       toast.error("Por favor, corrige los errores en el formulario.");
       return;
     }
-    const itemsToPreview: PreviewItem[] = [];
+    const items: PreviewItem[] = [];
     for (let i = 0; i < values.quantity; i++) {
-      const currentNumber = values.startNumber + i;
-      const formattedNumber = currentNumber.toString().padStart(2, "0");
-      itemsToPreview.push({
-        name: `${values.namePrefix} ${formattedNumber}`,
-        code: `${values.codePrefix}${formattedNumber}`,
+      const n = (values.startNumber + i).toString().padStart(2, "0");
+      items.push({
+        name: `${values.namePrefix} ${n}`,
+        code: `${values.codePrefix}${n}`.toUpperCase(),
       });
     }
-    setPreview(itemsToPreview);
+    setPreview(items);
   };
 
   const handleConfirmCreation = async () => {
@@ -92,9 +86,9 @@ export function BulkEquipmentForm() {
     setError(null);
     try {
       const values = form.getValues();
-      const response = await api.post("/equipment/bulk", values);
+      const response = await api.post("/locations/bulk", values);
       toast.success(response.data.message);
-      router.push("/admin/equipment");
+      router.push("/admin/locations");
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -116,7 +110,7 @@ export function BulkEquipmentForm() {
                 name="type"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tipo de Equipo a Crear</FormLabel>
+                    <FormLabel>Tipo de Ubicación</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -124,13 +118,9 @@ export function BulkEquipmentForm() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Object.values(EquipmentTypeEnum).map((type) => (
-                          <SelectItem
-                            key={type}
-                            value={type}
-                            className="capitalize"
-                          >
-                            {type.replace(/_/g, " ")}
+                        {Object.values(LocationTypeEnum).map((t) => (
+                          <SelectItem key={t} value={t} className="capitalize">
+                            {t.replace(/_/g, " ")}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -139,26 +129,30 @@ export function BulkEquipmentForm() {
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="parentLocationId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Ubicación Padre</FormLabel>
+                    <FormLabel>Ubicación Padre (Opcional)</FormLabel>
                     <FormControl>
                       <LocationCombobox
                         locations={locations}
                         value={field.value ?? ""}
                         onChange={field.onChange}
+                        placeholder="Sin ubicación padre..."
+                        includeNone
                       />
                     </FormControl>
                     <FormDescription>
-                      Los nuevos equipos pertenecerán a esta ubicación.
+                      Las nuevas ubicaciones quedarán anidadas bajo esta.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="namePrefix"
@@ -166,12 +160,16 @@ export function BulkEquipmentForm() {
                   <FormItem>
                     <FormLabel>Prefijo del Nombre</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ej: SCB Inversor 1.1" {...field} />
+                      <Input placeholder="Ej: Bloque" {...field} />
                     </FormControl>
+                    <FormDescription>
+                      Se generará: &quot;Bloque 01&quot;, &quot;Bloque 02&quot;…
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="codePrefix"
@@ -179,12 +177,16 @@ export function BulkEquipmentForm() {
                   <FormItem>
                     <FormLabel>Prefijo del Código</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ej: SCB-011" {...field} />
+                      <Input placeholder="Ej: BLQ-" {...field} />
                     </FormControl>
+                    <FormDescription>
+                      Se generará: &quot;BLQ-01&quot;, &quot;BLQ-02&quot;…
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -196,11 +198,9 @@ export function BulkEquipmentForm() {
                         <Input
                           type="number"
                           min={1}
-                          max={100}
+                          max={200}
                           {...field}
-                          onChange={(event) =>
-                            field.onChange(+event.target.value)
-                          }
+                          onChange={(e) => field.onChange(+e.target.value)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -221,8 +221,9 @@ export function BulkEquipmentForm() {
                   )}
                 />
               </div>
+
               <Button type="button" onClick={handlePreview} className="w-full">
-                Previsualizar Equipos
+                Previsualizar Ubicaciones
               </Button>
             </form>
           </Form>
@@ -237,13 +238,13 @@ export function BulkEquipmentForm() {
           {preview.length > 0 ? (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Se crearán los siguientes {preview.length} equipos. Revisa que
-                los nombres y códigos sean correctos.
+                Se crearán las siguientes {preview.length} ubicaciones. Revisa
+                que los nombres y códigos sean correctos.
               </p>
               <div className="max-h-80 overflow-y-auto border rounded-md p-2 space-y-1 text-xs">
                 {preview.map((item) => (
                   <p key={item.code} className="font-mono">
-                    <strong>{item.code}</strong> - {item.name}
+                    <strong>{item.code}</strong> — {item.name}
                   </p>
                 ))}
               </div>
@@ -255,7 +256,7 @@ export function BulkEquipmentForm() {
               >
                 {isLoading
                   ? "Creando..."
-                  : `Confirmar y Crear ${preview.length} Equipos`}
+                  : `Confirmar y Crear ${preview.length} Ubicaciones`}
               </Button>
             </div>
           ) : (

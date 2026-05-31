@@ -24,7 +24,6 @@ import {
   Calendar,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 
 export function DashboardNav() {
   const pathname = usePathname();
@@ -90,16 +89,16 @@ export function DashboardNav() {
         );
       })}
 
-      <div
-        className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground opacity-60 cursor-not-allowed"
-        title="Funcionalidad en desarrollo"
+      <Link
+        href="/map"
+        className={cn(
+          "flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary",
+          pathname === "/map" ? "bg-muted text-primary" : "text-muted-foreground"
+        )}
       >
         <Map className="h-4 w-4" />
-        <span>Mapa Operativo</span>
-        <Badge variant="secondary" className="ml-auto text-xs">
-          Próximamente
-        </Badge>
-      </div>
+        Mapa Operativo
+      </Link>
 
       {isAdminOrSupervisor && (
         <>

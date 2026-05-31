@@ -3,20 +3,17 @@
 import { useTasks } from "@/hooks/use-tasks";
 import { useMemo } from "react";
 import { KanbanCard } from "./KanbanCard";
-import { TaskStatus, TaskType } from "@/types";
-// Importaciones para Drag and Drop que dejaremos listas
+import { FailureReportType, TaskStatus, TaskType, TaskTypeEnum } from "@/types";
 import {
   DndContext,
   DragEndEvent,
-  // DragEndEvent,
   DragOverlay,
   DragStartEvent,
-  // DragStartEvent,
   PointerSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { KanbanColumn } from "./KanbanColumn"; // Lo necesitaremos de nuevo
+import { KanbanColumn } from "./KanbanColumn";
 import { createPortal } from "react-dom";
 import { useState } from "react";
 import api from "@/lib/api";
@@ -24,6 +21,8 @@ import { toast } from "sonner";
 import { getErrorMessage } from "@/lib/handle-error";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { PpeChecklistDialog } from "./PpeChecklistDialog";
+import { FailureReportDialog } from "./FailureReportDialog";
 
 interface KanbanBoardProps {
   filters: {
@@ -39,6 +38,10 @@ export function KanbanBoard({ filters }: KanbanBoardProps) {
   // const [activeTask] = useState<TaskType | null>(null);
   const isDesktop = useMediaQuery("(min-width: 768px)");
   const [activeTask, setActiveTask] = useState<TaskType | null>(null);
+  const [pendingStartTask, setPendingStartTask] = useState<TaskType | null>(null);
+  const [isPpeDialogOpen, setIsPpeDialogOpen] = useState(false);
+  const [pendingCompleteTask, setPendingCompleteTask] = useState<TaskType | null>(null);
+  const [isFailureReportOpen, setIsFailureReportOpen] = useState(false);
 
   const columns = useMemo(() => {
     const sortedTasks =
@@ -71,47 +74,103 @@ export function KanbanBoard({ filters }: KanbanBoardProps) {
     setActiveTask(event.active.data.current?.task as TaskType);
   }
 
-  async function handleDragEnd(event: DragEndEvent) {
-    setActiveTask(null); // Limpiamos la tarea activa
-    const { active, over } = event;
+  async function executeStatusChange(
+    task: TaskType,
+    newStatus: TaskStatus,
+    failureData?: FailureReportType
+  ) {
+    try {
+      if (newStatus === TaskStatus.EN_PROGRESO) {
+        await api.post(`/tasks/${task._id}/start`);
+      } else if (newStatus === TaskStatus.COMPLETADA) {
+        await api.post(`/tasks/${task._id}/complete`, {
+          failureReport: failureData,
+        });
+      } else {
+        await api.patch(`/tasks/${task._id}`, { status: newStatus });
+      }
+      mutate();
+    } catch (error) {
+      toast.error("Acción no permitida", { description: getErrorMessage(error) });
+      mutate();
+    }
+  }
 
-    // Si no se soltó sobre una columna válida, no hacemos nada
+  async function handleDragEnd(event: DragEndEvent) {
+    setActiveTask(null);
+    const { active, over } = event;
     if (!over) return;
 
     const originalTask = active.data.current?.task as TaskType;
     const newStatus = over.id as TaskStatus;
 
-    // Si se soltó en la misma columna, no hacemos nada
     if (originalTask.status === newStatus) return;
 
-    try {
-      // Llamada a la API según el nuevo estado
-      if (newStatus === TaskStatus.EN_PROGRESO) {
-        await api.post(`/tasks/${originalTask._id}/start`);
-      } else if (newStatus === TaskStatus.COMPLETADA) {
-        await api.post(`/tasks/${originalTask._id}/complete`);
-      } else {
-        // Para otros cambios (ej. de vuelta a pendiente) usamos PATCH
-        await api.patch(`/tasks/${originalTask._id}`, { status: newStatus });
-      }
-
-      // Mutate le dice a SWR que los datos han cambiado y debe recargarlos
-      mutate();
-    } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      console.error("Error al actualizar la tarea", error);
-      // Si hay un error, forzamos una recarga para revertir cualquier cambio optimista
-      toast.error("Acción no permitida", {
-        description: errorMessage,
-      });
-      mutate();
+    // Interceptar inicio: verificar EPP
+    if (
+      newStatus === TaskStatus.EN_PROGRESO &&
+      originalTask.requiredPpe &&
+      originalTask.requiredPpe.length > 0
+    ) {
+      setPendingStartTask(originalTask);
+      setIsPpeDialogOpen(true);
+      return;
     }
+
+    // Interceptar completar: pedir reporte si es tarea correctiva
+    if (newStatus === TaskStatus.COMPLETADA) {
+      if (originalTask.taskType === TaskTypeEnum.CORRECTIVO) {
+        setPendingCompleteTask(originalTask);
+        setIsFailureReportOpen(true);
+        return;
+      }
+    }
+
+    await executeStatusChange(originalTask, newStatus);
   }
 
   if (isLoading) return <div>Cargando tablero...</div>;
 
+  const ppeDialog = (
+    <PpeChecklistDialog
+      isOpen={isPpeDialogOpen}
+      onOpenChange={(open) => {
+        setIsPpeDialogOpen(open);
+        if (!open) setPendingStartTask(null);
+      }}
+      requiredPpe={pendingStartTask?.requiredPpe || []}
+      onConfirm={async () => {
+        if (pendingStartTask) {
+          await executeStatusChange(pendingStartTask, TaskStatus.EN_PROGRESO);
+          setPendingStartTask(null);
+        }
+      }}
+    />
+  );
+
+  const failureReportDialog = (
+    <FailureReportDialog
+      isOpen={isFailureReportOpen}
+      onOpenChange={(open) => {
+        setIsFailureReportOpen(open);
+        if (!open) setPendingCompleteTask(null);
+      }}
+      onConfirm={async (failureData) => {
+        if (pendingCompleteTask) {
+          await executeStatusChange(
+            pendingCompleteTask,
+            TaskStatus.COMPLETADA,
+            failureData
+          );
+          setPendingCompleteTask(null);
+        }
+      }}
+    />
+  );
+
   if (isDesktop) {
     return (
+      <>
       <DndContext
         sensors={sensors}
         onDragStart={handleDragStart}
@@ -150,11 +209,15 @@ export function KanbanBoard({ filters }: KanbanBoardProps) {
           document.body
         )}
       </DndContext>
+      {ppeDialog}
+      {failureReportDialog}
+</>
     );
   }
 
   // --- VISTA PARA MÓVIL (NUEVA INTERFAZ DE PESTAÑAS) ---
   return (
+    <>
     <Tabs defaultValue={TaskStatus.PENDIENTE} className="w-full">
       {/* 1. Envolvemos la lista en un div que permite scroll horizontal */}
       <div className="w-full overflow-x-auto pb-2">
@@ -204,5 +267,7 @@ export function KanbanBoard({ filters }: KanbanBoardProps) {
         </div>
       </TabsContent>
     </Tabs>
+    {ppeDialog}
+  </>
   );
 }

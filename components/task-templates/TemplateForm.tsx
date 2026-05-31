@@ -29,6 +29,7 @@ import {
 } from "../ui/select";
 import { Textarea } from "../ui/textarea";
 import { useLocations } from "@/hooks/use-locations";
+import { LocationCombobox } from "@/components/locations/LocationCombobox";
 import { usePpeItems } from "@/hooks/use-ppe-items";
 import { Checkbox } from "../ui/checkbox";
 
@@ -256,24 +257,14 @@ export function TemplateForm({ templateToEdit, onSuccess }: TemplateFormProps) {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Ubicación Preestablecida (Opcional)</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value ?? ""}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona una ubicación..." />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="none">-- Ninguna --</SelectItem>
-                    {locations?.map((loc) => (
-                      <SelectItem key={loc._id} value={loc._id}>
-                        {loc.name} ({loc.code})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <LocationCombobox
+                    locations={locations}
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    includeNone
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

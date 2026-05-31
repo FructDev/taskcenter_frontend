@@ -17,9 +17,11 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useAuthStore } from "@/store/auth.store";
 import { useAuth } from "@/hooks/use-auth"; // <-- 1. Importamos el hook para obtener los datos del usuario
-import { Breadcrumbs } from "./Breadcrumbs"; // <-- 2. Importamos nuestro nuevo componente
+import { Breadcrumbs } from "./Breadcrumbs";
+import { GlobalSearch } from "@/components/common/GlobalSearch";
 import { DashboardNav } from "./DashboardNav";
 import { ThemeToggle } from "./ThemeToggle";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import {
   Tooltip,
   TooltipContent,
@@ -77,9 +79,11 @@ export function Header() {
         </SheetContent>
       </Sheet>
 
-      {/* 4. Reemplazamos el div vacío con las Breadcrumbs */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex items-center gap-4">
         <Breadcrumbs />
+        <div className="hidden sm:block">
+          <GlobalSearch />
+        </div>
       </div>
       <div className="flex items-center gap-2 flex-shrink-0">
         <TooltipProvider>
@@ -97,6 +101,7 @@ export function Header() {
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        <NotificationBell />
         <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

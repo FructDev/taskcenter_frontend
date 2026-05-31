@@ -1,6 +1,7 @@
 // src/components/tasks/TaskComments.tsx
 "use client";
 
+import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,11 +13,10 @@ import { TaskType } from "@/types";
 import { useTask } from "@/hooks/use-task";
 import { useAuth } from "@/hooks/use-auth"; // <-- 1. Importamos el hook de autenticación
 import api from "@/lib/api";
-import { getErrorMessage } from "@/lib/handle-error";
+import { getErrorMessage, isOfflineQueued } from "@/lib/handle-error";
 
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Button } from "../ui/button";
-import { Textarea } from "../ui/textarea";
 import {
   Form,
   FormControl,
@@ -25,6 +25,7 @@ import {
   FormMessage,
 } from "../ui/form";
 import { Separator } from "../ui/separator";
+import { MentionTextarea } from "./MentionTextarea";
 
 const commentSchema = z.object({
   text: z
@@ -32,6 +33,20 @@ const commentSchema = z.object({
     .min(1, "El comentario no puede estar vacío.")
     .max(500, "El comentario es demasiado largo."),
 });
+
+function renderCommentText(text: string): React.ReactNode {
+  // Split on @Word Surname or @Word patterns and highlight them
+  const parts = text.split(/(@[\w]+(?: [\w]+)*)/g);
+  return parts.map((part, i) =>
+    /^@/.test(part) ? (
+      <span key={i} className="text-primary font-medium">
+        {part}
+      </span>
+    ) : (
+      part
+    )
+  );
+}
 
 export function TaskComments({ task }: { task: TaskType }) {
   const { mutate } = useTask(task._id);
@@ -49,9 +64,16 @@ export function TaskComments({ task }: { task: TaskType }) {
       form.reset();
       mutate();
     } catch (error) {
-      toast.error("No se pudo añadir el comentario", {
-        description: getErrorMessage(error),
-      });
+      if (isOfflineQueued(error)) {
+        toast.info("Sin conexión", {
+          description: "Tu comentario se enviará automáticamente cuando vuelva internet.",
+        });
+        form.reset();
+      } else {
+        toast.error("No se pudo añadir el comentario", {
+          description: getErrorMessage(error),
+        });
+      }
     }
   }
 
@@ -77,9 +99,10 @@ export function TaskComments({ task }: { task: TaskType }) {
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Textarea
+                    <MentionTextarea
                       placeholder="Escribe una actualización o comentario..."
-                      {...field}
+                      value={field.value}
+                      onChange={field.onChange}
                     />
                   </FormControl>
                   <FormMessage />
@@ -136,7 +159,7 @@ export function TaskComments({ task }: { task: TaskType }) {
                   </p>
                 </div>
                 <div className="text-sm text-muted-foreground leading-relaxed">
-                  <p className="whitespace-pre-wrap">{comment.text}</p>
+                  <p className="whitespace-pre-wrap">{renderCommentText(comment.text)}</p>
                 </div>
               </div>
             </div>

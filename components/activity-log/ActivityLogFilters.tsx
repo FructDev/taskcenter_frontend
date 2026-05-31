@@ -34,6 +34,7 @@ export function ActivityLogFilters() {
   // Estados locales para controlar los filtros antes de aplicarlos
   const [user, setUser] = useState(searchParams.get("userId") || "");
   const [action, setAction] = useState(searchParams.get("action") || "");
+  const [dateOpen, setDateOpen] = useState(false);
   const [date, setDate] = useState<DateRange | undefined>({
     from: searchParams.get("startDate")
       ? new Date(searchParams.get("startDate")!)
@@ -100,7 +101,7 @@ export function ActivityLogFilters() {
       {/* Filtro de Fecha */}
       {/* En pantallas grandes (lg), le decimos que ocupe 2 columnas */}
       <div className="lg:col-span-2 w-full">
-        <Popover>
+        <Popover open={dateOpen} onOpenChange={setDateOpen}>
           <PopoverTrigger asChild>
             <Button
               variant={"outline"}
@@ -130,7 +131,10 @@ export function ActivityLogFilters() {
               mode="range"
               defaultMonth={date?.from}
               selected={date}
-              onSelect={setDate}
+              onSelect={(range) => {
+                setDate(range);
+                if (range?.from && range?.to) setDateOpen(false);
+              }}
               numberOfMonths={2}
             />
           </PopoverContent>

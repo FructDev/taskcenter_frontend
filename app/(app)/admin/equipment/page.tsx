@@ -119,7 +119,6 @@ export default function ManageEquipmentPage() {
           );
         },
       },
-      { accessorKey: "name", header: "Nombre del Equipo" },
       { accessorKey: "code", header: "Código" },
       { accessorKey: "type", header: "Tipo" },
       { accessorKey: "location.name", header: "Ubicación" },

@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/auth.store";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { PushNotificationProvider } from "@/components/notifications/PushNotificationProvider";
+import { OfflineIndicator } from "@/components/common/OfflineIndicator";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, _hasHydrated } = useAuthStore();
@@ -36,6 +37,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <PushNotificationProvider>
             <div className="p-6 md:p-8 h-full">{children}</div>
           </PushNotificationProvider>
+          <OfflineIndicator />
         </main>
       </div>
     </div>

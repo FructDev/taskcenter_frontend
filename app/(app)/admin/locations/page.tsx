@@ -11,7 +11,9 @@ import api from "@/lib/api";
 import { getErrorMessage } from "@/lib/handle-error";
 import { useLocations } from "@/hooks/use-locations";
 
+import Link from "next/link";
 import { PageHeader } from "@/components/common/page-header";
+import { ParkMapSettings } from "@/components/map/ParkMapSettings";
 import { GenericDataTable } from "@/components/common/GenericDataTable";
 import { ActionsMenu } from "@/components/common/ActionsMenu";
 import { Button } from "@/components/ui/button";
@@ -107,14 +109,23 @@ export default function ManageLocationsPage() {
   return (
     <>
       <div className="flex flex-col gap-8">
+        <ParkMapSettings />
         <PageHeader
           title="Gestión de Ubicaciones"
           description="Crea y organiza la estructura jerárquica de las ubicaciones en el parque."
           actionButton={
-            <Button onClick={handleAddNew}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Añadir Ubicación
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" asChild>
+                <Link href="/admin/locations/bulk">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Crear en Lote
+                </Link>
+              </Button>
+              <Button onClick={handleAddNew}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Añadir Ubicación
+              </Button>
+            </div>
           }
         />
         <GenericDataTable
@@ -127,17 +138,19 @@ export default function ManageLocationsPage() {
       </div>
 
       <Dialog open={isFormModalOpen} onOpenChange={setIsFormModalOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{modalTitle}</DialogTitle>
           </DialogHeader>
-          <LocationForm
-            locationToEdit={selectedItem}
-            onSuccess={() => {
-              setIsFormModalOpen(false);
-              mutate();
-            }}
-          />
+          <div className="overflow-y-auto flex-1 pr-1">
+            <LocationForm
+              locationToEdit={selectedItem}
+              onSuccess={() => {
+                setIsFormModalOpen(false);
+                mutate();
+              }}
+            />
+          </div>
         </DialogContent>
       </Dialog>
 

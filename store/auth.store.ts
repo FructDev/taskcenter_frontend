@@ -1,14 +1,18 @@
 // src/store/auth.store.ts
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import {
+  saveTokenForSW,
+  clearTokenForSW,
+} from "@/lib/sync-queue.service";
 
 type AuthState = {
   token: string | null;
   isAuthenticated: boolean;
-  _hasHydrated: boolean; // <-- 1. Añadimos el estado de hidratación
+  _hasHydrated: boolean;
   setToken: (token: string) => void;
   logout: () => void;
-  setHasHydrated: (state: boolean) => void; // <-- 2. Añadimos una acción para cambiarlo
+  setHasHydrated: (state: boolean) => void;
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -16,16 +20,30 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       token: null,
       isAuthenticated: false,
-      _hasHydrated: false, // <-- 3. Valor inicial
-      setToken: (token) => set({ token, isAuthenticated: true }),
-      logout: () => set({ token: null, isAuthenticated: false }),
+      _hasHydrated: false,
+      setToken: (token) => {
+        // Guardamos el token en IndexedDB para que el SW pueda usarlo en sync
+        if (typeof window !== "undefined") {
+          saveTokenForSW(token).catch(() => {});
+        }
+        set({ token, isAuthenticated: true });
+      },
+      logout: () => {
+        if (typeof window !== "undefined") {
+          clearTokenForSW().catch(() => {});
+        }
+        set({ token: null, isAuthenticated: false });
+      },
       setHasHydrated: (state) => set({ _hasHydrated: state }),
     }),
     {
       name: "girasol-auth-storage",
-      // 4. Esta función se ejecuta una vez que el estado ha sido cargado
       onRehydrateStorage: () => (state) => {
         if (state) {
+          // Re-sincronizar el token en IndexedDB al rehidratar
+          if (state.token && typeof window !== "undefined") {
+            saveTokenForSW(state.token).catch(() => {});
+          }
           state.setHasHydrated(true);
         }
       },

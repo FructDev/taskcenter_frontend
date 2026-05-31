@@ -1,5 +1,14 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "leaflet/dist/leaflet.css";
+
+/* Quitar el fondo gris de Leaflet cuando se usa imagen personalizada */
+.leaflet-container {
+  background: #1a1a2e;
+}
+.leaflet-tile-pane {
+  background: transparent;
+}
 
 @custom-variant dark (&:is(.dark *));
 

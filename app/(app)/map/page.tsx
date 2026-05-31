@@ -1,21 +1,36 @@
-// app/(app)/map/page.tsx
-'use client';
+"use client";
+import dynamic from "next/dynamic";
+import { Skeleton } from "@/components/ui/skeleton";
 
-import { PageHeader } from "@/components/common/page-header";
-import { Construction } from "lucide-react";
-
-export default function MapPlaceholderPage() {
-  return (
-    <div className="flex flex-col gap-8">
-      <PageHeader
-        title="Mapa Operativo"
-        description="Visualización geográfica de las tareas activas en el parque."
-      />
-      <div className="flex flex-col items-center justify-center text-center text-muted-foreground border-2 border-dashed rounded-lg p-12 min-h-[400px]">
-        <Construction className="h-16 w-16 mb-4 text-slate-400" />
-        <h2 className="text-2xl font-semibold">Funcionalidad en Desarrollo</h2>
-        <p className="mt-2">El mapa interactivo estará disponible en una futura versión.</p>
+const OperationalMap = dynamic(
+  () => import("@/components/map/OperationalMap").then((m) => m.OperationalMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full w-full">
+        <div className="w-72 border-r bg-background">
+          <div className="p-4 space-y-4">
+            <Skeleton className="h-6 w-40" />
+            <div className="grid grid-cols-3 gap-2">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 rounded-lg" />)}
+            </div>
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex gap-2">
+                <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                <div className="flex-1 space-y-2 pt-1">
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-2/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <Skeleton className="flex-1" />
       </div>
-    </div>
-  );
+    ),
+  }
+);
+
+export default function MapPage() {
+  return <OperationalMap />;
 }

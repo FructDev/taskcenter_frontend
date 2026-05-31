@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { UserRole } from "@/types";
 
+const ALLOWED_ROLES = [UserRole.ADMIN, UserRole.SUPERVISOR];
+
 export default function AdminLayout({
   children,
 }: {
@@ -16,14 +18,11 @@ export default function AdminLayout({
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
-  // Roles que tienen permiso para acceder a la sección de administración
-  const allowedRoles = [UserRole.ADMIN, UserRole.SUPERVISOR];
-
   useEffect(() => {
     // Solo actuamos cuando la carga del usuario ha terminado
     if (!isLoading && user) {
       // Si el rol del usuario NO está en la lista de permitidos
-      if (!allowedRoles.includes(user.role as UserRole)) {
+      if (!ALLOWED_ROLES.includes(user.role as UserRole)) {
         // Mostramos una notificación y lo redirigimos
         toast.error("Acceso Denegado", {
           description: "No tienes permisos para acceder a esta sección.",
@@ -35,7 +34,7 @@ export default function AdminLayout({
 
   // Mientras carga o si el usuario no tiene el rol, mostramos un loader.
   // Esto previene que un usuario sin permisos vea el contenido por un instante.
-  if (isLoading || !user || !allowedRoles.includes(user.role as UserRole)) {
+  if (isLoading || !user || !ALLOWED_ROLES.includes(user.role as UserRole)) {
     return (
       <div className="flex h-full items-center justify-center">
         <p>Verificando permisos...</p>

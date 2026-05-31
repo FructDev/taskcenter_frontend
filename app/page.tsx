@@ -8,17 +8,25 @@ import { LoginForm } from "@/components/auth/LoginForm";
 
 export default function RootPage() {
   const router = useRouter();
-  const { isAuthenticated, _hasHydrated } = useAuthStore();
-  const { user } = useAuth();
+  const { isAuthenticated, _hasHydrated, logout } = useAuthStore();
+  const { user, isError } = useAuth();
 
   useEffect(() => {
-    if (_hasHydrated && isAuthenticated && user) {
+    if (!_hasHydrated) return;
+
+    // Token expirado o inválido: limpiar sesión y mostrar login
+    if (isAuthenticated && isError) {
+      logout();
+      return;
+    }
+
+    if (isAuthenticated && user) {
       const dashboardUrl = user.role === "tecnico" ? "/my-tasks" : "/dashboard";
       router.push(dashboardUrl);
     }
-  }, [isAuthenticated, user, _hasHydrated, router]);
+  }, [isAuthenticated, user, isError, _hasHydrated, router, logout]);
 
-  if (!_hasHydrated || (isAuthenticated && !_hasHydrated)) {
+  if (!_hasHydrated) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         Cargando sesión...
@@ -26,7 +34,7 @@ export default function RootPage() {
     );
   }
 
-  if (isAuthenticated) {
+  if (isAuthenticated && !isError) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         Verificando sesión...

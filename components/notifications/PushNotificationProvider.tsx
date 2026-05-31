@@ -6,6 +6,7 @@ import { getToken, onMessage } from "firebase/messaging";
 import { messaging } from "@/lib/firebase";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
+import { mutate } from "swr";
 
 export function PushNotificationProvider({
   children,
@@ -15,7 +16,6 @@ export function PushNotificationProvider({
   const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    // Solo ejecutamos esto si el usuario está autenticado
     if (!isAuthenticated) return;
 
     const requestPermission = async () => {
@@ -26,14 +26,12 @@ export function PushNotificationProvider({
         if (permission === "granted") {
           console.log("Permiso de notificación concedido.");
 
-          const vapidKey =
-            "BBerS5LNLWEPoPJ3D_FBU8WAxgccOTNLOQqwzs-gDSUTLnRX91sgyHyEtDKIYp8diBEkNboZeqBJFLlOhULG7NI";
+          const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
 
           const registration = await navigator.serviceWorker.register(
             "/firebase-messaging-sw.js",
-            { type: "module" } // usa ES Modules si tu archivo lo necesita
+            { scope: "/" }
           );
-          // Obtenemos el token del dispositivo
           const currentToken = await getToken(messaging, {
             vapidKey,
             serviceWorkerRegistration: registration,
@@ -41,7 +39,6 @@ export function PushNotificationProvider({
 
           if (currentToken) {
             console.log("Token FCM obtenido:", currentToken);
-            // Enviamos el token a nuestro backend para guardarlo
             await api.post("/notifications/subscribe", { token: currentToken });
           } else {
             console.log("No se pudo obtener el token de registro.");
@@ -59,12 +56,12 @@ export function PushNotificationProvider({
 
     requestPermission();
 
-    // Manejador para cuando llega una notificación y la app está en primer plano
     const unsubscribe = onMessage(messaging!, (payload) => {
       console.log("Mensaje recibido en primer plano. ", payload);
       toast.info(payload.notification?.title, {
         description: payload.notification?.body,
       });
+      mutate("/notifications/my");
     });
 
     return () => {

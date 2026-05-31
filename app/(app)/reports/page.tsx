@@ -4,7 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/common/page-header";
 import { useReportDashboard } from "@/hooks/use-report-dashboard";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, FileSpreadsheet, FileDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { KpiCards } from "@/components/reports/KpiCards";
 import { TasksByStatusPieChart } from "@/components/reports/TasksByStatusPieChart";
@@ -13,6 +13,7 @@ import { TasksByTypeBarChart } from "@/components/reports/TasksByTypeBarChart";
 import { TopTechniciansTable } from "@/components/reports/TopTechniciansTable";
 import { TopFailingEquipmentTable } from "@/components/reports/TopFailingEquipmentTable";
 import { TasksTrendLineChart } from "@/components/reports/TasksTrendLineChart";
+import { exportToExcel, exportToPdf } from "@/lib/export-reports";
 
 function ReportsDashboard() {
   const searchParams = useSearchParams();
@@ -40,8 +41,35 @@ function ReportsDashboard() {
     router.push(`/reports?${currentParams.toString()}`);
   };
 
+  const exportButtons = (
+    <div className="flex gap-2">
+      <Button
+        variant="outline"
+        disabled={isLoading || !data}
+        onClick={() => data && exportToExcel(data)}
+      >
+        <FileSpreadsheet className="mr-2 h-4 w-4" />
+        Exportar Excel
+      </Button>
+      <Button
+        variant="outline"
+        disabled={isLoading || !data}
+        onClick={() => data && exportToPdf(data)}
+      >
+        <FileDown className="mr-2 h-4 w-4" />
+        Exportar PDF
+      </Button>
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-6 pb-8">
+      <PageHeader
+        title="Dashboard de Inteligencia de Negocio"
+        description="Analiza el rendimiento operativo. Haz clic en los gráficos para filtrar todos los datos."
+        actionButton={exportButtons}
+      />
+
       {hasFilters && (
         <div className="flex justify-end">
           <Button variant="ghost" onClick={() => handleFilterChange(null)}>
@@ -95,7 +123,7 @@ function ReportsDashboard() {
           ) : (
             <TopTechniciansTable
               data={data?.topTechnicians}
-              isLoading={isLoading} // <-- Añadir
+              isLoading={isLoading}
               onFilterChange={handleFilterChange}
             />
           )}
@@ -106,7 +134,7 @@ function ReportsDashboard() {
           ) : (
             <TopFailingEquipmentTable
               data={data?.topFailingEquipment}
-              isLoading={isLoading} // <-- Añadir
+              isLoading={isLoading}
               onFilterChange={handleFilterChange}
             />
           )}
@@ -118,7 +146,7 @@ function ReportsDashboard() {
           ) : (
             <TasksTrendLineChart
               data={data?.tasksTrend}
-              isLoading={isLoading} // <-- Añadir
+              isLoading={isLoading}
             />
           )}
         </div>
@@ -129,16 +157,10 @@ function ReportsDashboard() {
 
 export default function ReportsPage() {
   return (
-    <>
-      <PageHeader
-        title="Dashboard de Inteligencia de Negocio"
-        description="Analiza el rendimiento operativo. Haz clic en los gráficos para filtrar todos los datos."
-      />
-      <Suspense
-        fallback={<div className="p-8 text-center">Cargando dashboard...</div>}
-      >
-        <ReportsDashboard />
-      </Suspense>
-    </>
+    <Suspense
+      fallback={<div className="p-8 text-center">Cargando dashboard...</div>}
+    >
+      <ReportsDashboard />
+    </Suspense>
   );
 }

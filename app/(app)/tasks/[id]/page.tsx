@@ -377,11 +377,14 @@ export default function TaskDetailPage() {
           )}
           <DailyLogSection task={task} />
           <Tabs defaultValue="comments">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="comments">
                 Comentarios ({task.comments.length})
               </TabsTrigger>
-              <TabsTrigger value="history">Historial de Actividad</TabsTrigger>
+              <TabsTrigger value="status-history">
+                Estados ({task.statusHistory?.length ?? 0})
+              </TabsTrigger>
+              <TabsTrigger value="history">Actividad</TabsTrigger>
             </TabsList>
             <TabsContent value="comments">
               <Card>
@@ -390,6 +393,43 @@ export default function TaskDetailPage() {
                 </CardHeader>
                 <CardContent>
                   <TaskComments task={task} />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value="status-history">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Historial de Cambios de Estado</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {task.statusHistory && task.statusHistory.length > 0 ? (
+                    <ol className="relative border-l border-muted ml-3 space-y-6 py-2">
+                      {task.statusHistory.map((entry, i) => (
+                        <li key={i} className="ml-6">
+                          <span className="absolute -left-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary ring-4 ring-background" />
+                          <div className="flex flex-wrap items-center gap-2 mb-1">
+                            <Badge variant="outline" className="capitalize">{entry.from}</Badge>
+                            <span className="text-muted-foreground text-xs">→</span>
+                            <Badge className="capitalize">{entry.to}</Badge>
+                          </div>
+                          {entry.reason && (
+                            <p className="text-sm text-muted-foreground italic">
+                              &quot;{entry.reason}&quot;
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {entry.createdAt
+                              ? format(new Date(entry.createdAt), "dd MMM yyyy, HH:mm", { locale: es })
+                              : "—"}
+                          </p>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      No hay cambios de estado registrados.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

@@ -40,9 +40,10 @@ export default function FieldLookupPage() {
     try {
       // Usamos nuestro endpoint de búsqueda para encontrar el equipo por su código
       const response = await api.get(`/equipment?search=${code}`);
-      if (response.data.data.length > 0) {
-        const equipmentId = response.data.data[0]._id;
-        router.push(`/equipment/${equipmentId}`);
+      const results = Array.isArray(response.data) ? response.data : response.data?.data ?? [];
+      if (results.length > 0) {
+        const equipmentId = results[0]._id;
+        router.push(`/admin/equipment/${equipmentId}`);
       } else {
         toast.error(`No se encontró ningún equipo con el código "${code}".`);
       }
