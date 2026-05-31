@@ -3,11 +3,10 @@
 
 import {
   cleanupOutdatedCaches,
-  createHandlerBoundToURL,
   precacheAndRoute,
 } from "workbox-precaching";
 import { clientsClaim } from "workbox-core";
-import { registerRoute, NavigationRoute } from "workbox-routing";
+import { registerRoute } from "workbox-routing";
 import { NetworkFirst, StaleWhileRevalidate, CacheFirst } from "workbox-strategies";
 import { ExpirationPlugin } from "workbox-expiration";
 import { getAndClearQueue, getTokenForSW } from "../lib/sync-queue.service";
@@ -25,7 +24,8 @@ clientsClaim();
 
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
-registerRoute(new NavigationRoute(createHandlerBoundToURL("/")));
+// NavigationRoute eliminada — Next.js App Router maneja cada ruta con su propio HTML.
+// Usar createHandlerBoundToURL("/") en App Router causa bucles de redirección en móvil.
 
 // ─── Caché de rutas API ───────────────────────────────────────────────────────
 

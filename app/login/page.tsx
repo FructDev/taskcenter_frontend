@@ -8,19 +8,26 @@ import { LoginForm } from "@/components/auth/LoginForm";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { isAuthenticated, _hasHydrated } = useAuthStore();
-  const { user } = useAuth();
+  const { isAuthenticated, _hasHydrated, logout } = useAuthStore();
+  const { user, isError } = useAuth();
 
   useEffect(() => {
-    // Solo redirige después de que la sesión se haya cargado y si el usuario está autenticado
-    if (_hasHydrated && isAuthenticated && user) {
+    if (!_hasHydrated) return;
+
+    // Token expirado o inválido → limpiar sesión
+    if (isAuthenticated && isError) {
+      logout();
+      return;
+    }
+
+    // Sesión válida → redirigir al dashboard correspondiente
+    if (isAuthenticated && user) {
       const dashboardUrl = user.role === "tecnico" ? "/my-tasks" : "/dashboard";
       router.push(dashboardUrl);
     }
-  }, [isAuthenticated, user, _hasHydrated, router]);
+  }, [isAuthenticated, user, isError, _hasHydrated, router, logout]);
 
-  // Muestra un loader mientras se carga la sesión desde el almacenamiento local
-  if (!_hasHydrated || (isAuthenticated && !_hasHydrated)) {
+  if (!_hasHydrated) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         Cargando sesión...
@@ -28,8 +35,7 @@ export default function LoginPage() {
     );
   }
 
-  // Si el usuario está autenticado pero aún no se ha redirigido, muestra otro mensaje
-  if (isAuthenticated) {
+  if (isAuthenticated && !isError) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         Verificando sesión...
