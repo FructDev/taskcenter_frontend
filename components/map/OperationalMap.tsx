@@ -21,10 +21,25 @@ import {
   ListFilter,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LocationTypeEnum } from "@/types";
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
 const PARK_CENTER: [number, number] = [18.2833, -70.1167];
+
+// Status priority: overdue > en progreso > pendiente > pausada
+const STATUS_PRIORITY: Record<string, number> = {
+  overdue: 4,
+  "en progreso": 3,
+  pendiente: 2,
+  pausada: 1,
+};
+const BLOCK_STATUS_COLOR: Record<string, string> = {
+  overdue: "#ef4444",
+  "en progreso": "#3b82f6",
+  pendiente: "#f59e0b",
+  pausada: "#64748b",
+};
 
 const STATUS_COLOR: Record<string, string> = {
   pendiente: "#f59e0b",
@@ -78,7 +93,7 @@ function TaskCard({
   const dueDate = new Date(task.dueDate);
   const overdue = isPast(dueDate) && !isToday(dueDate) && task.status !== "completada";
   const color = STATUS_COLOR[task.status] ?? "#a1a1aa";
-  const hasCoords = !!task.location?.coordinates?.lat;
+  const hasCoords = !!task.location?.coordinates?.lat || (task.location?.type === LocationTypeEnum.BLOCK && !!task.location?.bounds);
 
   return (
     <button
@@ -132,6 +147,8 @@ export function OperationalMap() {
   const mapInstanceRef = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const markersRef = useRef<Map<string, any>>(new Map());
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const blockRectsRef = useRef<Map<string, any>>(new Map());
 
   const [selectedTask, setSelectedTask] = useState<TaskType | null>(null);
   const [panelOpen, setPanelOpen] = useState(true);
@@ -144,7 +161,10 @@ export function OperationalMap() {
 
   const allTasks = tasks ?? [];
   const tasksWithCoords = allTasks.filter(
-    (t) => t.location?.coordinates?.lat != null
+    (t) => t.location?.coordinates?.lat != null && t.location?.type !== LocationTypeEnum.BLOCK
+  );
+  const blockTasks = allTasks.filter(
+    (t) => t.location?.type === LocationTypeEnum.BLOCK && t.location?.bounds != null
   );
 
   // Estadísticas
@@ -226,6 +246,7 @@ export function OperationalMap() {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
         markersToClean.clear();
+        blockRectsRef.current.clear();
       }
     };
   }, [imageUrl, imageWidth, imageHeight]);
@@ -281,12 +302,85 @@ export function OperationalMap() {
     });
   }, [tasksWithCoords, isLoading]);
 
+  // ── Actualizar rectángulos de bloques ──────────────────────────────────────
+  useEffect(() => {
+    if (!mapInstanceRef.current || isLoading || !imageWidth || !imageHeight) return;
+    const rectsMap = blockRectsRef.current;
+    const mapInstance = mapInstanceRef.current;
+
+    import("leaflet").then((L) => {
+      // Group by location id → pick highest-priority task status
+      const byLocation = new Map<string, { tasks: TaskType[]; status: string }>();
+      blockTasks.forEach((task) => {
+        const locId = task.location._id;
+        const entry = byLocation.get(locId);
+        const dueDate = new Date(task.dueDate);
+        const effectiveStatus =
+          isPast(dueDate) && !isToday(dueDate) && task.status !== "completada"
+            ? "overdue"
+            : task.status;
+        if (!entry) {
+          byLocation.set(locId, { tasks: [task], status: effectiveStatus });
+        } else {
+          entry.tasks.push(task);
+          if ((STATUS_PRIORITY[effectiveStatus] ?? 0) > (STATUS_PRIORITY[entry.status] ?? 0)) {
+            entry.status = effectiveStatus;
+          }
+        }
+      });
+
+      // Remove rects for locations no longer present
+      rectsMap.forEach((rect, locId) => {
+        if (!byLocation.has(locId)) {
+          rect.remove();
+          rectsMap.delete(locId);
+        }
+      });
+
+      // Create or update rects
+      byLocation.forEach(({ tasks, status }, locId) => {
+        const b = tasks[0].location.bounds!;
+        const sw: [number, number] = [b.y1 * imageHeight, b.x1 * imageWidth];
+        const ne: [number, number] = [b.y2 * imageHeight, b.x2 * imageWidth];
+        const color = BLOCK_STATUS_COLOR[status] ?? "#a1a1aa";
+
+        if (rectsMap.has(locId)) {
+          const rect = rectsMap.get(locId);
+          rect.setBounds([sw, ne]);
+          rect.setStyle({ color, fillColor: color });
+        } else {
+          const rect = L.rectangle([sw, ne], {
+            color,
+            weight: 2,
+            fillColor: color,
+            fillOpacity: 0.3,
+          }).addTo(mapInstance);
+
+          rect.on("click", () => {
+            // Select the first (or highest priority) task
+            setSelectedTask((prev) => (prev?._id === tasks[0]._id ? null : tasks[0]));
+          });
+
+          rectsMap.set(locId, rect);
+        }
+      });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blockTasks, isLoading, imageWidth, imageHeight]);
+
   // ── Centrar mapa en tarea seleccionada ──────────────────────────────────────
   const focusTask = (task: TaskType) => {
     setSelectedTask(task);
-    if (!task.location?.coordinates || !mapInstanceRef.current) return;
-    const { lat, lng } = task.location.coordinates;
-    mapInstanceRef.current.flyTo([lat, lng], imageUrl ? 1 : 18, { duration: 0.8 });
+    if (!mapInstanceRef.current) return;
+    if (task.location?.type === LocationTypeEnum.BLOCK && task.location?.bounds && imageWidth && imageHeight) {
+      const b = task.location.bounds;
+      const centerLat = ((b.y1 + b.y2) / 2) * imageHeight;
+      const centerLng = ((b.x1 + b.x2) / 2) * imageWidth;
+      mapInstanceRef.current.flyTo([centerLat, centerLng], 1, { duration: 0.8 });
+    } else if (task.location?.coordinates) {
+      const { lat, lng } = task.location.coordinates;
+      mapInstanceRef.current.flyTo([lat, lng], imageUrl ? 1 : 18, { duration: 0.8 });
+    }
   };
 
   return (
@@ -359,7 +453,7 @@ export function OperationalMap() {
               <div className="text-center py-8 text-muted-foreground text-sm px-3">
                 No hay tareas activas en este momento.
               </div>
-            ) : tasksWithCoords.length === 0 ? (
+            ) : tasksWithCoords.length === 0 && blockTasks.length === 0 ? (
               <div className="mx-2 mt-2 mb-1 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-400 space-y-1">
                 <p className="font-semibold">⚠ Ninguna ubicación tiene coordenadas</p>
                 <p>Ve a <strong>Admin → Ubicaciones</strong>, edita cada una y haz clic en el plano para ubicarla.</p>
@@ -440,7 +534,7 @@ export function OperationalMap() {
         </div>
 
         {/* Aviso sin tareas en el mapa */}
-        {!isLoading && tasksWithCoords.length === 0 && allTasks.length > 0 && (
+        {!isLoading && tasksWithCoords.length === 0 && blockTasks.length === 0 && allTasks.length > 0 && (
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[500] bg-background/95 backdrop-blur-sm border rounded-xl px-4 py-3 text-center shadow-lg text-sm max-w-xs">
             <MapPin className="h-5 w-5 mx-auto mb-1.5 text-muted-foreground" />
             <p className="font-medium">Ninguna tarea tiene coordenadas</p>

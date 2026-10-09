@@ -57,6 +57,7 @@ export interface LocationType {
   parentLocation?: LocationType;
   description?: string;
   coordinates?: { lat: number; lng: number };
+  bounds?: { x1: number; y1: number; x2: number; y2: number };
 }
 
 export interface CommentType {

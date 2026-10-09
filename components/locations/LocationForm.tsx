@@ -38,6 +38,11 @@ const LocationCoordinatePicker = dynamic(
   { ssr: false, loading: () => <div className="h-52 w-full rounded-md border bg-muted animate-pulse" /> }
 );
 
+const LocationBoundsPicker = dynamic(
+  () => import("./LocationBoundsPicker").then((m) => m.LocationBoundsPicker),
+  { ssr: false, loading: () => <div className="h-52 w-full rounded-md border bg-muted animate-pulse" /> }
+);
+
 const formSchema = z.object({
   name: z.string().min(3, "El nombre es muy corto."),
   code: z.string().min(1, "El código es requerido.").toUpperCase(),
@@ -49,8 +54,16 @@ const formSchema = z.object({
   // Los campos de coordenadas los dejaremos opcionales y simples por ahora
   coordinates: z
     .object({
-      lat: z.coerce.number().optional(), // Debe ser lat
-      lng: z.coerce.number().optional(), // Debe ser lng
+      lat: z.coerce.number().optional(),
+      lng: z.coerce.number().optional(),
+    })
+    .optional(),
+  bounds: z
+    .object({
+      x1: z.number(),
+      y1: z.number(),
+      x2: z.number(),
+      y2: z.number(),
     })
     .optional(),
 });
@@ -77,6 +90,7 @@ export function LocationForm({ locationToEdit, onSuccess }: LocationFormProps) {
       coordinates: locationToEdit?.coordinates
         ? { lat: locationToEdit.coordinates.lat, lng: locationToEdit.coordinates.lng }
         : undefined,
+      bounds: locationToEdit?.bounds ?? undefined,
     },
   });
 
@@ -188,18 +202,31 @@ export function LocationForm({ locationToEdit, onSuccess }: LocationFormProps) {
             </FormItem>
           )}
         />
-        {/* Selector de coordenadas GPS */}
-        <div className="space-y-1.5">
-          <p className="text-sm font-medium">Coordenadas en el Mapa (Opcional)</p>
-          <p className="text-xs text-muted-foreground">
-            Haz clic en el mapa o arrastra el marcador para fijar la posición exacta en el parque.
-          </p>
-          <LocationCoordinatePicker
-            lat={form.watch("coordinates.lat")}
-            lng={form.watch("coordinates.lng")}
-            onChange={(coords) => form.setValue("coordinates", coords)}
-          />
-        </div>
+        {/* Selector de posición en el mapa */}
+        {form.watch("type") === LocationTypeEnum.BLOCK ? (
+          <div className="space-y-1.5">
+            <p className="text-sm font-medium">Área del Bloque en el Mapa (Opcional)</p>
+            <p className="text-xs text-muted-foreground">
+              Haz clic y arrastra sobre el plano para dibujar el rectángulo del bloque.
+            </p>
+            <LocationBoundsPicker
+              bounds={form.watch("bounds")}
+              onChange={(b) => form.setValue("bounds", b)}
+            />
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            <p className="text-sm font-medium">Coordenadas en el Mapa (Opcional)</p>
+            <p className="text-xs text-muted-foreground">
+              Haz clic en el mapa o arrastra el marcador para fijar la posición exacta en el parque.
+            </p>
+            <LocationCoordinatePicker
+              lat={form.watch("coordinates.lat")}
+              lng={form.watch("coordinates.lng")}
+              onChange={(coords) => form.setValue("coordinates", coords)}
+            />
+          </div>
+        )}
 
         <FormError message={error} />
         <Button type="submit" className="w-full" disabled={isLoading}>
